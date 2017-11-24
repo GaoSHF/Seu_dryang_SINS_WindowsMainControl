@@ -4,7 +4,7 @@
 #pragma once
 #include "afxwin.h"
 
-#define MAINMODE 2      //1 normal£¬2 haishi
+#define MAINMODE 1      //1 normal£¬2 haishi
 // CWindowsMainControlV1Dlg ¶Ô»°¿ò
 class CWindowsMainControlV1Dlg : public CDialogEx
 {

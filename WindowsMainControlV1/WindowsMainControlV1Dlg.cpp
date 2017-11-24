@@ -1812,7 +1812,7 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 				tempob[1] = gps.pos[1] * D2R;
 				tempob[2] = gps.pos[1];
 	
-				fine_yucia(fkalman, tempob, YA_POS);
+				navi_Kal_15_3(fkalman, tempob, YA_POS);
 				sysc.state = _T("位置组合");
 				break;
 			case NAVI_VELANDAZ:
@@ -1822,14 +1822,14 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 				vecsub(3, tempob, infor.att_angle, tempob_att);				
 				DeltaAtt2Phi(infor, tempob, tempob);//姿态误差角到失准角处理
 				vecsub(2, tempob, infor.vel_n, tempob_v);
-				fine_yucia(fkalman,tempob, YA_VELANDAZ);
+				navi_Kal_15_3(fkalman,tempob, YA_VELANDAZ);
 				sysc.state = _T("速度+航向组合");
 				break;
 			case NAVI_VEL:
 				avecmul(3, tempob_v, phins.vel, 1);//观测量的获得方式
 
 				vecsub(2, tempob, infor.vel_n, tempob_v);
-				fine_yucia(fkalman,tempob, YA_VELANDAZ);
+				navi_Kal_15_3(fkalman,tempob, YA_VELANDAZ);
 				sysc.state = _T("速度组合");
 				break;
 			case NAVI_HAISHI_BASIC:

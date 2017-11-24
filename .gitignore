@@ -5,3 +5,4 @@ WindowsMainControlV1/AECMFC4B_lib.h
 *.txt
 WindowsMainControlV1/WindowsMainControlV1.vcxproj
 WindowsMainControlV1/WindowsMainControlV1.vcxproj.filters
+.vs/
