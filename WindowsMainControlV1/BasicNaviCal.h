@@ -15,7 +15,8 @@ double latitog(double lati);                  /* 根据输入纬度值计算重力加速度值 
 void X2cnn(double c[3][3], double X_vector[3]);
 void set_R(FILTER &kal, double v1, double v2, double ang);
 void DeltaAtt2Phi(SYS_ELEMENT temp_infor,double phi[3],double delta_att[3]);//姿态误差角到失准角的处理
-
-
+void rv2q(double q[4],double rv[3]);//旋转矢量转换为四元数
+void qmul(double q[4], double q1[4], double q2[4]);//四元数乘法q=q1*q2;
+void qmulv(double v[3], double q[4], double vi[3]);//旋转矢量经过四元数的变换v = q*vi*conjugation(q)
 
 

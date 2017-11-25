@@ -1,11 +1,8 @@
 #include "stdafx.h"
 #include "Navigation.h"
 
-/**
-* @brief  comp_z_undamp 无高度阻尼
-* @param  None
-* @retval None
-*/
+
+// 无高度阻尼纯捷联解算，原始方法
 void sinscal_zundamp(double quart_del )
 {
 	double	gi, g, Re, Rn;
@@ -35,11 +32,7 @@ void sinscal_zundamp(double quart_del )
 	/* Ci->n 在b系上的投影，Cn->b 由粗对准计算 */
 	vecmul(3,3,win_b,(double*)infor.cnb_mat,win_n);
 	if(sysc.Fs==100)//haishi设备用
-	{
-		win_b[0] = 0;
-		win_b[1] = 0;
-		win_b[2] = 0;
-	}	
+		memset(win_b, 0, sizeof(win_b));
 	vecadd(3,a_wib_b,infor.gyro_wib_b,infor.gyro_old);
  	avecmul(3,a_wib_b,a_wib_b,0.5);
 	vecsub(3,wnb_b,a_wib_b,win_b);
@@ -73,6 +66,97 @@ void sinscal_zundamp(double quart_del )
 	infor.pos[0] += dlati * quart_del;
 	infor.pos[1] += dlongi * quart_del;	
     infor.pos[2] += infor.vel_n[2] * quart_del;      //+
+}
+//无高度阻尼，旋转矢量法，补偿一些误差
+void sinscal_rv(double quart_del)
+{
+	double	gi, g, Re, Rn;
+	double dlati, dlongi;
+	double win_n[3];	
+	double fw[3];
+	double rvin[3];//旋转矢量
+	double rvib_old[3] = { 0 }, rvib_bu[3];
+	double tempq[4];
+	double vrot[3],vscull[3],tempscull[3];
+	double df[3], fn[3], an[3];
+	double dsita[3], dsita_old[3], dsb[3], dsb_old[3];
+
+	/* 导航系下g值计算，可以优化，放到全局变量，统一初始化计算 */
+	gi = sqrt(1 - 0.00669437999013*sin(infor.pos[0])*sin(infor.pos[0]));
+	g = 9.7803267714*(1 + 0.00193185138639*sin(infor.pos[0])*sin(infor.pos[0])) / gi;
+	infor.g = g;
+	/* 计算曲率半径，可以优化 */
+	Rn = RE*(1.0 - 2.0*AEE + 3.0*AEE*sin(infor.pos[0])*sin(infor.pos[0]));//子午圈
+	Re = RE*(1.0 + AEE*sin(infor.pos[0])*sin(infor.pos[0]));
+
+	/* 经纬度微分 惯性导航8.1.6 */
+	dlati = infor.vel_n[1] / (Rn + infor.pos[2]);
+	dlongi = infor.vel_n[0] / ((Re + infor.pos[2])* cos(infor.pos[0]));
+
+	/* Ci->n 地球自转角速度在n系上的投影，同时考虑导航系的变化 */
+	win_n[0] = -dlati;
+	win_n[1] = WIE * cos(infor.pos[0]) + dlongi * cos(infor.pos[0]);
+	win_n[2] = WIE * sin(infor.pos[0]) + dlongi * sin(infor.pos[0]);
+	avecmul(3, rvin, win_n, -quart_del);
+	memcpy(rvib_old, infor.rvib, sizeof(infor.rvib));
+	vecadd(3, infor.rvib, infor.gyro_wib_b, infor.gyro_old);
+	avecmul(3, infor.rvib, infor.rvib, quart_del/2);
+	if (1 == sysc.data_cnt)
+		memcpy(rvib_old, infor.rvib, sizeof(infor.rvib));
+	cvecmul(rvib_bu, rvib_old, infor.rvib);
+	avecmul(3, rvib_bu, rvib_bu, 0.083333);
+	vecadd(3, rvib_bu, infor.rvib, rvib_bu);
+	rv2q(tempq, rvib_bu);
+	qmul(infor.quart, infor.quart, tempq);
+	if (sysc.Fs == 100)//haishi设备用
+		memset(rvin, 0, sizeof(rvin));
+	rv2q(tempq, rvin);
+	qmul(infor.quart, tempq, infor.quart);
+	//optq(infor.quart);
+	q2cnb(infor.cnb_mat, infor.quart);
+	cnb2ang(infor.cnb_mat, infor.att_angle);          // 计算姿态角
+														  		
+	avecmul(3, dsita, infor.gyro_wib_b, quart_del);
+	avecmul(3, dsb, infor.acce_b, quart_del);
+	cvecmul(vrot,dsita, dsb);
+	avecmul(3, vrot, vrot, 0.5);
+
+	avecmul(3, dsita_old, infor.gyro_old, quart_del);
+	avecmul(3, dsb_old, infor.acce_old, quart_del);
+	cvecmul(vscull, dsita_old, dsb);
+	cvecmul(tempscull, dsita, dsb_old);
+	vecadd(3, tempscull, vscull, tempscull);
+	avecmul(3, vscull, tempscull, 0.083333);//不能用1/12。算出来是0
+
+	vecadd(3, df, vscull, vrot);
+	avecmul(3, df, df, 1/ quart_del);
+
+	vecadd(3, fn, df, infor.acce_b);
+	maturn(3, 3, (double*)infor.cbn_mat, (double*)infor.cnb_mat);
+	vecmul(3, 3, fn, (double*)infor.cbn_mat, fn);
+
+	avecmul(3, rvin, rvin, 0.5);	
+	rv2q(tempq, rvin);
+	qmulv(an, tempq, fn);
+
+	/* 利用比力公式计算 */
+	fw[0] = -dlati;
+	fw[1] = 2 * WIE * cos(infor.pos[0]) + dlongi * cos(infor.pos[0]);
+	fw[2] = 2 * WIE * sin(infor.pos[0]) + dlongi * sin(infor.pos[0]);
+
+	/* 惯性导航式8.1.4 */
+	infor.dvel_n[0] = an[0] + fw[2] * infor.vel_n[1] - fw[1] * infor.vel_n[2];
+	infor.dvel_n[1] = an[1] - fw[2] * infor.vel_n[0] + fw[0] * infor.vel_n[2];
+	infor.dvel_n[2] = an[2] + fw[1] * infor.vel_n[0] - fw[0] * infor.vel_n[1] - g;   //+
+
+	infor.vel_n[0] += infor.dvel_n[0] * quart_del;
+	infor.vel_n[1] += infor.dvel_n[1] * quart_del;
+	infor.vel_n[2] += infor.dvel_n[2] * quart_del;
+
+	/********* 经度 & 纬度 **********/
+	infor.pos[0] += dlati * quart_del;
+	infor.pos[1] += dlongi * quart_del;
+	infor.pos[2] += infor.vel_n[2] * quart_del;      //+
 }
 
 #pragma region HAISHI
@@ -359,10 +443,10 @@ void attCorrect_HeadOpen_test()
 
 	for (i = 0; i < 2; i++)
 	{
-	//	kal.gyro_comps[i] += kal.X_vector[i + 9];
+		kal.gyro_comps[i] += kal.X_vector[i + 9];
 	}
 	if (infor.flagComps == 1)/*infor.flagComps为1，对航向陀螺漂移进行补偿*/
-	//	kal.gyro_comps[2] += kal.X_vector[11];
+		kal.gyro_comps[2] += kal.X_vector[11];
 
 	fosn.recnum++;
 }
@@ -404,7 +488,7 @@ void navigation(double o_vel_e,double o_vel_n,double o_ang,char mode)
 			infor.flagComps = 0;
 		else
 			infor.flagComps = 1;
-		for (i = 0; i < sta_num-5; i++)
+		for (i = 0; i < sta_num; i++)
 			kal.X_vector[i] = 0.0;	
 		kal_algo();
 		if (mode == NAVI_HAISHI_JZ)

@@ -52,7 +52,7 @@ void init_basicnavi(void)//infor£¬out_nav£¬SINSpara£¬IMUout
 	memset(infor.cbn_mat,0,sizeof(infor.cbn_mat));
 	memset(infor.gyro_bias_esti, 0, sizeof(infor.gyro_bias_esti));
 	memset(infor.acce_bias_esti, 0, sizeof(infor.acce_bias_esti));
-	
+	memset(infor.rvib, 0, sizeof(infor.rvib));
 	for(i = 0; i < 4; i++)
 	{
 		infor.quart[i] = 0.;
