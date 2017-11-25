@@ -51,6 +51,7 @@
 //纯惯性模式选择
 #define    PURE_SINS_UNDUMP   0                      // 纯捷联无阻尼
 #define    PURE_SINS_DUMP     1                      // 纯捷联高度阻尼
+#define    PURE_SINS_RV       2                      // 纯捷联旋转矢量更新算法
 #define    PURE_SINS_TRANSVERSE 3                    // 横向导航
 #define    PURE_SINS_HAISHI_P 4                      // 纯捷联haishi_P
 #define    PURE_SINS_HAISHI_L 5                      // 纯捷联haishi_LD
@@ -61,6 +62,7 @@ struct SYS_ELEMENT
 
 	double att_angle[3];//姿态角
 	double vel_n[3];//速度
+	double old_v[3];//上一次计算的速度值
 	double vel_b[3];
 	double dvel_n[3];//加速度
    	double lati;//纬度
@@ -80,7 +82,7 @@ struct SYS_ELEMENT
 	double gyro_wib_b[3];//陀螺在b系值
 	double gyro_old[3];//上一次采集的陀螺值
 	double acce_b[3];//加表在b系值
-
+	double acce_old[3];
 	/*==========初始位置===========*/
 	double initial_pos[3];
 	double user_position[3];
@@ -101,6 +103,8 @@ struct SYS_ELEMENT
 	double att_angle_old[3];
 	int device_type;
 	int flagComps;
+
+	double rvib[3];//旋转矢量
 	
 };
 struct SYS_ELEMENTtransverse
@@ -223,6 +227,10 @@ public:
 struct NAVPARA
 {
 	double  gn[3];
+};
+class EARTH
+{
+	double g[3];
 };
 //罗经法对准控制量
 struct  COMPALIGN

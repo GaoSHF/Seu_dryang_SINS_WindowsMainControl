@@ -944,7 +944,7 @@ bool CWindowsMainControlV1Dlg::init_Combo()
 	}
 	m_FineAignMode.SetCurSel(0);
 
-	CString str4[] = { _T("仅纯惯性"),_T("无组合"),_T("速度+位置+姿态"),_T("GPS位置组合"),_T("速度+航向"),_T("haishi组合"),_T("haishi降噪") };
+	CString str4[] = { _T("仅纯惯性"),_T("暂无（）"),_T("速度+位置+姿态"),_T("GPS位置组合"),_T("速度+航向"),_T("haishi组合"),_T("haishi降噪") };
 	for (i = 0; i < 7; i++)
 	{
 		judge_tf = m_NaviMode.InsertString(i, str4[i]);
@@ -956,7 +956,7 @@ bool CWindowsMainControlV1Dlg::init_Combo()
 	}
 	m_NaviMode.SetCurSel(5);
 
-	CString str5[] = { _T("无阻尼"),_T("有阻尼"),_T("改进方法1"),_T("横向导航"),_T("haishi炮位") ,_T("haishi雷达位") ,_T("haishi无杆臂") };
+	CString str5[] = { _T("无阻尼"),_T("有阻尼（暂无）"),_T("旋转矢量法"),_T("横向导航"),_T("haishi炮位") ,_T("haishi雷达位") ,_T("haishi无杆臂") };
 	for (i = 0; i < 7; i++)
 	{
 		judge_tf = m_HeightMode.InsertString(i, str5[i]);
@@ -1677,10 +1677,18 @@ void CWindowsMainControlV1Dlg::CoarseThread()
 			for (j = 0; j < 3; j++)
 			{
 				/* 存储上一帧数据 */
-				if (1 == sysc.data_cnt)  infor.gyro_old[j] = IMUout.gyro_b[j] * D2R;
-				infor.gyro_old[j] = infor.gyro_wib_b[j]; // 在陀螺量测没有更新之前复制
+				if (1 == sysc.data_cnt)
+				{
+					infor.gyro_old[j] = IMUout.gyro_b[j] * D2R;
+					infor.acce_old[j] = IMUout.acce_b[j] * D2R;
+				}
+				else
+				{
+					infor.gyro_old[j] = infor.gyro_wib_b[j]; // 在陀螺量测没有更新之前复制
+					infor.acce_old[j] = infor.acce_b[j];
+				}
 				infor.gyro_wib_b[j] = IMUout.gyro_b[j] * D2R; // 新的陀螺量测
-				infor.acce_b[j] = IMUout.acce_b[j];        // 加表数据	 	
+				infor.acce_b[j] = IMUout.acce_b[j];		 // 加表数据	
 			}
 			calipara.IMUcalibrate(infor);
 			switch (CoarseModeNum)
@@ -1706,8 +1714,16 @@ void CWindowsMainControlV1Dlg::FineThread()
 			/* 导航数据读取 */
 			for (j = 0; j < 3; j++)
 			{
-				if (1 == sysc.data_cnt)  infor.gyro_old[j] = IMUout.gyro_b[j] * D2R;
-				infor.gyro_old[j] = infor.gyro_wib_b[j]; // 在陀螺量测没有更新之前复制
+				if (1 == sysc.data_cnt)
+				{
+					infor.gyro_old[j] = IMUout.gyro_b[j] * D2R;
+					infor.acce_old[j] = IMUout.acce_b[j] * D2R;
+				}
+				else
+				{
+					infor.gyro_old[j] = infor.gyro_wib_b[j]; // 在陀螺量测没有更新之前复制
+					infor.acce_old[j] = infor.acce_b[j];
+				}
 				infor.gyro_wib_b[j] = IMUout.gyro_b[j] * D2R; // 新的陀螺量测
 				infor.acce_b[j] = IMUout.acce_b[j];		 // 加表数据	
 			}
@@ -1770,8 +1786,16 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 			/* 导航数据读取 */
 			for (j = 0; j < 3; j++)
 			{
-				if (1 == sysc.data_cnt)  infor.gyro_old[j] = IMUout.gyro_b[j] * D2R;
-				infor.gyro_old[j] = infor.gyro_wib_b[j]; // 在陀螺量测没有更新之前复制
+				if (1 == sysc.data_cnt)
+				{
+					infor.gyro_old[j] = IMUout.gyro_b[j] * D2R;
+					infor.acce_old[j] = IMUout.acce_b[j] * D2R;
+				}
+				else
+				{
+					infor.gyro_old[j] = infor.gyro_wib_b[j]; // 在陀螺量测没有更新之前复制
+					infor.acce_old[j] = infor.acce_b[j];
+				}				
 				infor.gyro_wib_b[j] = IMUout.gyro_b[j] * D2R; // 新的陀螺量测
 				infor.acce_b[j] = IMUout.acce_b[j];		 // 加表数据			
 			}
@@ -1782,6 +1806,9 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 			case PURE_SINS_UNDUMP:
 				sinscal_zundamp(sysc.Ts); 
 				sysc.state = _T("基础纯惯性"); 
+				break;
+			case PURE_SINS_RV:
+				sinscal_rv(sysc.Ts);
 				break;
 			case PURE_SINS_HAISHI_P:
 				infor.rp[0] = 0.05; infor.rp[1] = 50; infor.rp[2] = 1;

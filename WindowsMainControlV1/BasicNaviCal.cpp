@@ -349,6 +349,41 @@ void CALIPMT::IMUcalibrate(SYS_ELEMENT &infor)
 	vecmul(3, 3, infor.gyro_wib_b, (double *)Eg_mat_inv, temp_g);
 	vecmul(3, 3, infor.acce_b, (double *)Ea_mat_inv, temp_a);
 }
-
-
-
+void rv2q(double q[4], double rv[3])
+{	
+	double n2 = rv[0]*rv[0] + rv[1]*rv[1] + rv[2]*rv[2];
+	double s = 0;
+	double n,n_2;
+	if (n2 < 1.0e-8)
+	{
+		q[0] = 1 - n2*(1 / 8.0 - n2 / 384.0);
+		s = 0.5 - n2*(1 / 48.0 - n2 / 3840.0);
+	}
+	else
+	{
+		n = sqrt(n2); 
+		n_2 = n / 2.0;
+		q[0] = cos(n_2); 
+		s = sin(n_2) / n;
+	}		
+	q[1] = s*rv[0]; q[2] = s*rv[1]; q[3]= s*rv[2];
+}
+void qmul(double q[4], double q1[4], double q2[4])
+{
+	q[0] = q1[0] * q2[0] - q1[1] * q2[1] - q1[2] * q2[2] - q1[3] * q2[3];
+	q[1] = q1[0] * q2[1] + q1[1] * q2[0] + q1[2] * q2[3] - q1[3] * q2[2];
+	q[2] = q1[0] * q2[2] + q1[2] * q2[0] + q1[3] * q2[1] - q1[1] * q2[3];
+	q[3] = q1[0] * q2[3] + q1[3] * q2[0] + q1[1] * q2[2] - q1[2] * q2[1];
+}
+void qmulv(double v[3], double q[4], double vi[3])
+{
+	double qo[4];
+	qo[0] = -q[1] * vi[0] - q[2] * vi[1] - q[3] * vi[2];
+	qo[1] = q[0] * vi[0] + q[2] * vi[2] - q[3] * vi[1];
+	qo[2] = q[0] * vi[1] + q[3] * vi[0] - q[1] * vi[2];
+	qo[3] = q[0] * vi[2] + q[1] * vi[1] - q[2] * vi[0];
+	
+	v[0] = -qo[0] * q[1] + qo[1] * q[0] - qo[2] * q[3] + qo[3] * q[2];
+	v[1] = -qo[0] * q[2] + qo[2] * q[0] - qo[3] * q[1] + qo[1] * q[3];
+	v[2] = -qo[0] * q[3] + qo[3] * q[0] - qo[1] * q[2] + qo[2] * q[1];
+}

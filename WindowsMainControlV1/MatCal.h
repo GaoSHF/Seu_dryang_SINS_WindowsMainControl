@@ -17,10 +17,7 @@ void amamul(int n1, int n2, double *a, double *b, double c);// amamul 矩阵数乘运
 void maturn(int n1, int n2, double *c, double *d);//矩阵转置运算 c(n,m) = d(m,n)'
 void swap(double *a, double *b);//交换两个数
 void mainv(int n, double *a);//mainv 矩阵求逆运算 a = inv(a)
-void qmulv(double vout[3], double q[4], double vin[3]);//
-void qmul(double q[4], double q1[4], double q2[4]);//
-void alphaMat(double aMat[4][4], double alpha[3]);
-void betaMat(double bMat[4][4], double beta[3]);
+
 
 int sign(double x);//符号函数
 double fal(double x, float a, float delta);
