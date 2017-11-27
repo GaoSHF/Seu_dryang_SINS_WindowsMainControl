@@ -42,12 +42,16 @@
 
 // 导航模式选择
 #define    NAVI_SINS_UNDUMP   0                      // 纯捷联无阻尼
-#define    NAVI_VELANDAZ      1                      // 速度+航向组合
-#define    NAVI_UNAV          2                      // 水下组合导航
+#define    NAVI_VELANDAZ      1                      // 速度+航向组合n系
+#define    NAVI_UNAV          2                      // 位置+速度+航向组合（水下导航组合）
 #define    NAVI_SG            3                      // GPS 位置组合
-#define    NAVI_VEL           4                      // 速度组合
+#define    NAVI_VEL           4                      // GPS速度组合
 #define    NAVI_HAISHI_BASIC  5                      // 设备基础
 #define    NAVI_HAISHI_JZ     6                      // 设备降噪
+#define    NAVI_PHINS_POS     7                      // PHINS位置组合
+#define    NAVI_PHINS_VEL1    8                      // PHINS速度组合n系
+#define    NAVI_PHINS_VEL2    9                      // PHINS速度组合b系
+#define    NAVI_VELANDAZ2     10                     // 速度+航向组合b系
 //纯惯性模式选择
 #define    PURE_SINS_UNDUMP   0                      // 纯捷联无阻尼
 #define    PURE_SINS_DUMP     1                      // 纯捷联高度阻尼
