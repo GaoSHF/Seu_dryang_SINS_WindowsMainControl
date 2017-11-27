@@ -339,8 +339,8 @@ void kalinitial()
 	kal.Q_state[2][2] = pow(10 * D2R / 3600, 2);
 	kal.Q_state[3][3] = kal.Q_state[2][2];
 	kal.Q_state[4][4] = kal.Q_state[2][2];
-//	kal.Q_state[5][5] = kal.Q_state[0][0];
-//	kal.Q_state[6][6] = kal.Q_state[0][0];
+	kal.Q_state[5][5] = kal.Q_state[0][0];
+	kal.Q_state[6][6] = kal.Q_state[0][0];
 
 	for (i = 0; i < mea_num; i++)
 		for (j = 0; j < mea_num; j++)

@@ -478,8 +478,8 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnStartcal()
 		switch (NaviModeNum)
 		{
 		case NAVI_HAISHI_BASIC:case NAVI_HAISHI_JZ:kalinitial(); break;
-		case NAVI_SG:Kal_Init_P_15(YA_POS); break;
-		case NAVI_VEL:Kal_Init_P_15(YA_VEL); break;
+		case NAVI_SG:case NAVI_PHINS_POS: Kal_Init_P_15(YA_POS); break;
+		case NAVI_VEL:case NAVI_PHINS_VEL1:case NAVI_PHINS_VEL2: Kal_Init_P_15(YA_VEL); break;
 		case NAVI_VELANDAZ:Kal_Init_P_15(YA_VELANDAZ); break;
 		default: break;
 		}
@@ -944,8 +944,8 @@ bool CWindowsMainControlV1Dlg::init_Combo()
 	}
 	m_FineAignMode.SetCurSel(0);
 
-	CString str4[] = { _T("仅纯惯性"),_T("暂无（）"),_T("速度+位置+姿态"),_T("GPS位置组合"),_T("速度+航向"),_T("haishi组合"),_T("haishi降噪") };
-	for (i = 0; i < 7; i++)
+	CString str4[] = { _T("仅纯惯性"),_T("暂无（）"),_T("速度+位置+姿态"),_T("GPS位置组合"),_T("速度+航向"),_T("haishi组合"),_T("haishi降噪"),_T("PS位置组合"),_T("PS速度组合n"),_T("PS速度组合b"),_T("速度 + 航向组合b系") };
+	for (i = 0; i < 11; i++)
 	{
 		judge_tf = m_NaviMode.InsertString(i, str4[i]);
 		if ((judge_tf == CB_ERR) || (judge_tf == CB_ERRSPACE))
@@ -1810,9 +1810,6 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 			case PURE_SINS_RV:
 				sinscal_rv(sysc.Ts);
 				break;
-			case PURE_SINS_HAISHI_P:
-				infor.rp[0] = 0.05; infor.rp[1] = 50; infor.rp[2] = 1;
-				break;
 			case PURE_SINS_TRANSVERSE:
 				
 				sinscal_zundamp(sysc.Ts);
@@ -1824,6 +1821,9 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 				for (int i = 0; i<3; i++) inforS.acce_b[i] = infor.acce_b[i];
 				sinscal_TRANSVERSE(inforS, sysc.Ts, gyro);
 				sysc.state = _T("纯惯性+横向纯惯性");
+				break;
+			case PURE_SINS_HAISHI_P:
+				infor.rp[0] = 0.05; infor.rp[1] = 50; infor.rp[2] = 1;
 				break;
 			case PURE_SINS_HAISHI_L:
 				infor.rp[0] = 0.05; infor.rp[1] = 15; infor.rp[2] = 15;

@@ -332,7 +332,7 @@ void fine_yucia(SKALMAN_15_3& temp_kal, double observer[3],char mode)
 		{		
 
 			vecsub(3, temp_kal.Mea_vector, infor.pos, observer);
-			Kal_update_15_3(temp_kal,1);
+			Kal_update_15_3(temp_kal, sysc.Kal_fr);
 			if (sysc.cnt_s >= sysc.coarse_time + 20)//20s之后开始校正
 			{
 				vecsub(3, infor.vel_n, infor.vel_n, temp_kal.X_vector);
