@@ -27,5 +27,5 @@ void init_basicnavi(void);                    //基础导航参数初始化
 void init_coarsealign(void);                  //粗对准参数初始化
 void init_cmp(void);                          //罗经参数初始化
 void init_adrc(void);
-void Kal_Init_P_15(char mode);
+void Kal_Init_P_15(SKALMAN_15_3& temp_kal,char mode);
 void kalinitial(void);

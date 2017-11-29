@@ -246,6 +246,7 @@ void F_matrix_15(SYS_ELEMENT temp_infor,double F_15[15][15])
 	F_15[8][2] = 1;
 
 }
+
 void Kal_update_15_3(SKALMAN_15_3& temp_kal, double kal_Ts)                   //20171115
 {
 	int		i, j;
@@ -308,7 +309,7 @@ void Kal_forecast_15(SKALMAN_15_3& temp_kal, double fil_del, double F_15[15][15]
 	maturn(15, 15, (double *)state_transpose, (double *)temp_kal.state_dis);
 	mamul(15, 15, 15, (double *)tmp1, (double *)tmp1, (double *)state_transpose);
 	maadd(15, 15, (double *)Q_dis, (double *)temp_kal.Q_state, (double *)tmp1);
-	amamul(15, 15, (double *)Q_dis, (double *)Q_dis, fil_del / 2);
+	amamul(15, 15, (double *)Q_dis, (double *)Q_dis, fil_del / 2.0);
 
 	//预测 P
 	mamul(15, 15, 15, (double *)tmp1, (double *)temp_kal.state_dis, (double *)temp_kal.P_matrix);
@@ -354,6 +355,7 @@ void fine_yucia(SKALMAN_15_3& temp_kal, double observer[3],char mode)
 		}
 	}
 }
+//1,没有时间限制；2，输入的观测量是差值
 void navi_Kal_15_3(SKALMAN_15_3& temp_kal, double observer[3], char mode)
 {
 	int i = 0;
@@ -363,7 +365,7 @@ void navi_Kal_15_3(SKALMAN_15_3& temp_kal, double observer[3], char mode)
 	Kal_forecast_15(temp_kal, sysc.Ts, F_15);                   //20171115   15维一步预测通用算法 适用于所有 SKALMAN_15_3结构体
 	if (0 == sysc.data_cnt % (sysc.Fs / sysc.Kal_fr))
 	{
-		vecsub(3, temp_kal.Mea_vector, infor.pos, observer);
+		avecmul(3,temp_kal.Mea_vector, observer, 1.0);
 		Kal_update_15_3(temp_kal, 1);
 		if (sysc.cnt_s >= sysc.algn_time + 20)//20s之后开始校正
 		{

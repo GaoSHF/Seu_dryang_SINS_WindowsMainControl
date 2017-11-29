@@ -246,67 +246,71 @@ void init_adrc(void)
 	adrc.azi5=0.4;
 }
 //卡尔曼双位置精对准初始化(15维位置匹配)，模式决定什么组合//0~2速度误差，3~5姿态误差，9~11是加表常值，12~14是陀螺常值
-void Kal_Init_P_15(char mode)              //20171108
+void Kal_Init_P_15(SKALMAN_15_3& temp_kal,char mode)              //20171108
 {
-	memset(fkalman.P_matrix, 0, sizeof(fkalman.P_matrix));
+	memset(temp_kal.P_matrix, 0, sizeof(temp_kal.P_matrix));
 
-	fkalman.P_matrix[0][0] = powl(1, 2);
-	fkalman.P_matrix[1][1] = fkalman.P_matrix[0][0];
-	fkalman.P_matrix[2][2] = fkalman.P_matrix[0][0];
+	temp_kal.P_matrix[0][0] = powl(1, 2);
+	temp_kal.P_matrix[1][1] = temp_kal.P_matrix[0][0];
+	temp_kal.P_matrix[2][2] = temp_kal.P_matrix[0][0];
 
-	fkalman.P_matrix[3][3] = powl(1 * D2R, 2);
-	fkalman.P_matrix[4][4] = fkalman.P_matrix[3][3];
-	fkalman.P_matrix[5][5] = powl(10 * D2R, 2);
+	temp_kal.P_matrix[3][3] = powl(1 * D2R, 2);
+	temp_kal.P_matrix[4][4] = temp_kal.P_matrix[3][3];
+	temp_kal.P_matrix[5][5] = powl(10 * D2R, 2);
 
-	fkalman.P_matrix[6][6] = powl(10.0 / RE, 2);
-	fkalman.P_matrix[7][7] = fkalman.P_matrix[6][6];
-	fkalman.P_matrix[8][8] = powl(5, 2);
+	temp_kal.P_matrix[6][6] = powl(10.0 / RE, 2);
+	temp_kal.P_matrix[7][7] = temp_kal.P_matrix[6][6];
+	temp_kal.P_matrix[8][8] = powl(5, 2);
 
-	fkalman.P_matrix[9][9] = powl(1000 * ug, 2);
-	fkalman.P_matrix[10][10] = fkalman.P_matrix[9][9];
-	fkalman.P_matrix[11][11] = fkalman.P_matrix[9][9];
+	temp_kal.P_matrix[9][9] = powl(1000 * ug, 2);
+	temp_kal.P_matrix[10][10] = temp_kal.P_matrix[9][9];
+	temp_kal.P_matrix[11][11] = temp_kal.P_matrix[9][9];
 
-	fkalman.P_matrix[12][12] = powl(0.02*dph, 2);
-	fkalman.P_matrix[13][13] = fkalman.P_matrix[12][12];
-	fkalman.P_matrix[14][14] = fkalman.P_matrix[12][12];
+	temp_kal.P_matrix[12][12] = powl(0.02*dph, 2);
+	temp_kal.P_matrix[13][13] = temp_kal.P_matrix[12][12];
+	temp_kal.P_matrix[14][14] = temp_kal.P_matrix[12][12];
 
-	memset(fkalman.Q_state, 0, sizeof(fkalman.Q_state));
+	memset(temp_kal.Q_state, 0, sizeof(temp_kal.Q_state));
 
-	fkalman.Q_state[0][0] = powl(50 * ug, 2);
-	fkalman.Q_state[1][1] = fkalman.Q_state[0][0];
-	fkalman.Q_state[2][2] = fkalman.Q_state[0][0];
+	temp_kal.Q_state[0][0] = powl(50 * ug, 2);
+	temp_kal.Q_state[1][1] = temp_kal.Q_state[0][0];
+	temp_kal.Q_state[2][2] = temp_kal.Q_state[0][0];
 
-	fkalman.Q_state[3][3] = powl(0.01*dph, 2);
-	fkalman.Q_state[4][4] = fkalman.Q_state[3][3];
-	fkalman.Q_state[5][5] = fkalman.Q_state[3][3];
+	temp_kal.Q_state[3][3] = powl(0.01*dph, 2);
+	temp_kal.Q_state[4][4] = temp_kal.Q_state[3][3];
+	temp_kal.Q_state[5][5] = temp_kal.Q_state[3][3];
 
-	memset(fkalman.R_measure, 0, sizeof(fkalman.R_measure));
-
-	fkalman.R_measure[0][0] = powl(1 / RE, 2);
-	fkalman.R_measure[1][1] = powl(1 / RE, 2);
-	fkalman.R_measure[2][2] = powl(1, 2);
-
-	memset(fkalman.H_matrix, 0, sizeof(fkalman.H_matrix));
+	memset(temp_kal.R_measure, 0, sizeof(temp_kal.R_measure));
+	memset(temp_kal.H_matrix, 0, sizeof(temp_kal.H_matrix));
 	if (mode == YA_POS)
 	{
-		fkalman.H_matrix[0][6] = 1;
-		fkalman.H_matrix[1][7] = 1;
-		fkalman.H_matrix[2][8] = 1;
+		temp_kal.H_matrix[0][6] = 1;
+		temp_kal.H_matrix[1][7] = 1;
+		temp_kal.H_matrix[2][8] = 1;
+		temp_kal.R_measure[0][0] = powl(1 / RE, 2);
+		temp_kal.R_measure[1][1] = powl(1 / RE, 2);
+		temp_kal.R_measure[2][2] = powl(1, 2);
 	}
 	if (mode == YA_VEL)
 	{
-		fkalman.H_matrix[0][0] = 1;
-		fkalman.H_matrix[1][1] = 1;
-		fkalman.H_matrix[2][2] = 1;
+		temp_kal.H_matrix[0][0] = 1;
+		temp_kal.H_matrix[1][1] = 1;
+		temp_kal.H_matrix[2][2] = 1;
+		temp_kal.R_measure[0][0] = powl(0.1, 2);
+		temp_kal.R_measure[1][1] = powl(0.1, 2);
+		temp_kal.R_measure[2][2] = powl(0.1, 2);
 	}
 	if (mode == YA_VELANDAZ)
 	{
-		fkalman.H_matrix[0][0] = 1;
-		fkalman.H_matrix[1][1] = 1;
-		fkalman.H_matrix[2][5] = -1;
+		temp_kal.H_matrix[0][0] = 1;
+		temp_kal.H_matrix[1][1] = 1;
+		temp_kal.H_matrix[2][5] = -1;
+		temp_kal.R_measure[0][0] = powl(0.1, 2);
+		temp_kal.R_measure[1][1] = powl(0.1, 2);
+		temp_kal.R_measure[2][2] = powl(0.5*D2R, 2);
 	}
 
-	memset(fkalman.X_vector, 0, sizeof(fkalman.X_vector));
+	memset(temp_kal.X_vector, 0, sizeof(temp_kal.X_vector));
 }
 //设备程序用的kalman滤波初始化
 void kalinitial()
