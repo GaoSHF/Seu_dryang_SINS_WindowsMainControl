@@ -246,6 +246,102 @@ void F_matrix_15(SYS_ELEMENT temp_infor,double F_15[15][15])
 	F_15[8][2] = 1;
 
 }
+//@brief  根据puresins结构体参数求取16维F阵
+void F_matrix_16(SYS_ELEMENT temp_infor, double F_16[16][16])
+{
+	int		i, j;
+	double	w0[8], w1[3], w2[3];
+	double temp = (1 - E2* sin(temp_infor.pos[0])* sin(temp_infor.pos[0]));
+	double RMh = RE*(1 - E2) / sqrt(temp*temp*temp) + temp_infor.pos[2];
+	double RNh = RE / sqrt(1 - E2* sin(temp_infor.pos[0])* sin(temp_infor.pos[0])) + temp_infor.pos[2];
+
+	w0[0] = 2 * WIE  * (temp_infor.vel_n[1] * cos(temp_infor.pos[0]) + temp_infor.vel_n[2] * sin(temp_infor.pos[0])) + temp_infor.vel_n[1] * temp_infor.vel_n[0] / cos(temp_infor.pos[0]) / cos(temp_infor.pos[0]) / (RNh + temp_infor.pos[2]);
+	w0[1] = (2 * WIE * cos(temp_infor.pos[0]) + temp_infor.vel_n[0] / cos(temp_infor.pos[0]) / cos(temp_infor.pos[0]) / (RNh + temp_infor.pos[2])) * temp_infor.vel_n[0];
+	w0[2] = WIE * cos(temp_infor.pos[0]) + temp_infor.vel_n[0] / cos(temp_infor.pos[0]) / cos(temp_infor.pos[0]) / (RNh + temp_infor.pos[2]);
+	w0[3] = temp_infor.vel_n[0] * tan(temp_infor.pos[0]) / cos(temp_infor.pos[0]) / (RNh + temp_infor.pos[2]);
+	w0[4] = WIE * sin(temp_infor.pos[0]);
+	w0[5] = temp_infor.vel_n[0] * (temp_infor.vel_n[2] - temp_infor.vel_n[1] * tan(temp_infor.pos[0])) / (RNh + temp_infor.pos[2]) / (RNh + temp_infor.pos[2]);
+	w0[6] = temp_infor.vel_n[1] * temp_infor.vel_n[2] / (RMh + temp_infor.pos[2]) / (RMh + temp_infor.pos[2]) + temp_infor.vel_n[0] * temp_infor.vel_n[0] * tan(temp_infor.pos[0]) / (RNh + temp_infor.pos[2]) / (RNh + temp_infor.pos[2]);
+	w0[7] = temp_infor.vel_n[1] * temp_infor.vel_n[1] / (RMh + temp_infor.pos[2]) / (RMh + temp_infor.pos[2]) + temp_infor.vel_n[0] * temp_infor.vel_n[0] / (RNh + temp_infor.pos[2]) / (RNh + temp_infor.pos[2]);
+
+	w1[0] = -temp_infor.vel_n[1] / (RMh + temp_infor.pos[2]);
+	w1[1] = 2 * WIE * cos(temp_infor.pos[0]) + temp_infor.vel_n[0] / (RNh + temp_infor.pos[2]);
+	w1[2] = 2 * WIE * sin(temp_infor.pos[0]) + temp_infor.vel_n[0] * tan(temp_infor.pos[0]) / (RNh + temp_infor.pos[2]);
+
+	w2[0] = -temp_infor.vel_n[1] / (RMh + temp_infor.pos[2]);
+	w2[1] = WIE * cos(temp_infor.pos[0]) + temp_infor.vel_n[0] / (RNh + temp_infor.pos[2]);
+	w2[2] = WIE * sin(temp_infor.pos[0]) + temp_infor.vel_n[0] * tan(temp_infor.pos[0]) / (RNh + temp_infor.pos[2]);
+
+	for (i = 0; i < 16; i++)
+	for (j = 0; j < 16; j++)
+		F_16[i][j] = 0.0;
+
+	F_16[0][0] = (temp_infor.vel_n[1] * tan(temp_infor.pos[0]) - temp_infor.vel_n[2]) / (RNh + temp_infor.pos[2]);
+	F_16[0][1] = w1[2];
+	F_16[0][2] = -w1[1];
+	F_16[0][4] = -temp_infor.acce_n[2];
+	F_16[0][5] = temp_infor.acce_n[1];
+	F_16[0][6] = w0[0];
+	F_16[0][8] = w0[5];
+	F_16[0][9] = temp_infor.cbn_mat[0][0];
+	F_16[0][10] = temp_infor.cbn_mat[0][1];
+	F_16[0][11] = temp_infor.cbn_mat[0][2];
+
+	F_16[1][0] = -w1[2];
+	F_16[1][1] = -temp_infor.vel_n[2] / (RMh + temp_infor.pos[2]);
+	F_16[1][2] = -temp_infor.vel_n[1] / (RMh + temp_infor.pos[2]);
+	F_16[1][3] = temp_infor.acce_n[2];
+	F_16[1][5] = -temp_infor.acce_n[0];
+	F_16[1][6] = -w0[1];
+	F_16[1][8] = w0[6];
+	F_16[1][9] = temp_infor.cbn_mat[1][0];
+	F_16[1][10] = temp_infor.cbn_mat[1][1];
+	F_16[1][11] = temp_infor.cbn_mat[1][2];
+
+	F_16[2][0] = 2 * w2[1];
+	F_16[2][1] = 2 * temp_infor.vel_n[1] / (RMh + temp_infor.pos[2]);
+	F_16[2][3] = -temp_infor.acce_n[1];
+	F_16[2][4] = temp_infor.acce_n[0];
+	F_16[2][6] = -2 * temp_infor.vel_n[0] * w0[4];
+	F_16[2][8] = -w0[7];
+	F_16[2][9] = temp_infor.cbn_mat[2][0];
+	F_16[2][10] = temp_infor.cbn_mat[2][1];
+	F_16[2][11] = temp_infor.cbn_mat[2][2];
+
+	F_16[3][1] = -1 / (RMh + temp_infor.pos[2]);
+	F_16[3][4] = w2[2];
+	F_16[3][5] = -w2[1];
+	F_16[3][8] = temp_infor.vel_n[1] / (RMh + temp_infor.pos[2]) / (RMh + temp_infor.pos[2]);
+	F_16[3][12] = -temp_infor.cbn_mat[0][0];
+	F_16[3][13] = -temp_infor.cbn_mat[0][1];
+	F_16[3][14] = -temp_infor.cbn_mat[0][2];
+
+	F_16[4][0] = 1 / (RNh + temp_infor.pos[2]);
+	F_16[4][3] = -w2[2];
+	F_16[4][5] = w2[0];
+	F_16[4][6] = -w0[4];
+	F_16[4][8] = -temp_infor.vel_n[0] / (RNh + temp_infor.pos[2]) / (RNh + temp_infor.pos[2]);
+	F_16[4][12] = -temp_infor.cbn_mat[1][0];
+	F_16[4][13] = -temp_infor.cbn_mat[1][1];
+	F_16[4][14] = -temp_infor.cbn_mat[1][2];
+
+	F_16[5][0] = tan(temp_infor.pos[0]) / (RNh + temp_infor.pos[2]);
+	F_16[5][3] = w2[1];
+	F_16[5][4] = -w2[0];
+	F_16[5][6] = w0[2];
+	F_16[5][8] = -temp_infor.vel_n[0] * tan(temp_infor.pos[0]) / (RNh + temp_infor.pos[2]) / (RNh + temp_infor.pos[2]);
+	F_16[5][12] = -temp_infor.cbn_mat[2][0];
+	F_16[5][13] = -temp_infor.cbn_mat[2][1];
+	F_16[5][14] = -temp_infor.cbn_mat[2][2];
+
+	F_16[6][1] = 1 / (RMh + temp_infor.pos[2]);
+	F_16[6][8] = -temp_infor.vel_n[1] / (RMh + temp_infor.pos[2]) / (RMh + temp_infor.pos[2]);
+	F_16[7][0] = 1 / cos(temp_infor.pos[0]) / (RNh + temp_infor.pos[2]);
+	F_16[7][6] = w0[3];
+	F_16[7][8] = -temp_infor.vel_n[0] / cos(temp_infor.pos[0]) / (RNh + temp_infor.pos[2]) / (RNh + temp_infor.pos[2]);
+	F_16[8][2] = 1;
+
+}
 void Kal_update_15_3(SKALMAN_15_3& temp_kal, double kal_Ts)                   //20171115
 {
 	int		i, j;
@@ -284,6 +380,45 @@ void Kal_update_15_3(SKALMAN_15_3& temp_kal, double kal_Ts)                   //
 	vecmul(15, 3, tmp6, (double *)K_matrix, tmp5);
 	vecadd(15, temp_kal.X_vector, temp_kal.X_forecast, tmp6);
 }
+
+void Kal_update_16_3(SKALMAN_16_3& temp_kal, double kal_Ts)                   //20171128
+{
+	int		i, j;
+	double	unit_matr[16][16], tmp2[3][16], H_transpose[16][3], tmp3[3][3], R_dis[3][3], tmp4[16][3], K_matrix[16][3], tmp1[16][16], tmp5[3], tmp6[16];
+
+	for (i = 0; i < 16; i++)
+	for (j = 0; j < 16; j++)
+	{
+		if (i == j)
+			unit_matr[i][j] = 1.;
+		else
+			unit_matr[i][j] = 0.;
+	}
+	amamul(16, 16, (double *)temp_kal.P_forecast, (double *)temp_kal.P_matrix, 1);
+	amamul(16, 1, (double *)temp_kal.X_forecast, (double *)temp_kal.X_vector, 1);
+
+	//滤波增益 K
+	mamul(3, 16, 16, (double *)tmp2, (double *)temp_kal.H_matrix, (double *)temp_kal.P_forecast);
+	maturn(3, 16, (double *)H_transpose, (double *)temp_kal.H_matrix);
+	mamul(3, 16, 3, (double *)tmp3, (double *)tmp2, (double *)H_transpose);
+	amamul(3, 3, (double *)R_dis, (double *)temp_kal.R_measure, kal_Ts);
+	maadd(3, 3, (double *)tmp3, (double *)tmp3, (double *)R_dis);
+	mainv(3, (double *)tmp3);//Pzz^-1
+
+	mamul(16, 16, 3, (double *)tmp4, (double *)temp_kal.P_forecast, (double *)H_transpose);
+	mamul(16, 3, 3, (double *)K_matrix, (double *)tmp4, (double *)tmp3);
+
+	//更新 P
+	mamul(16, 3, 16, (double *)tmp1, (double *)K_matrix, (double *)temp_kal.H_matrix);
+	masub(16, 16, (double *)tmp1, (double *)unit_matr, (double *)tmp1);
+	mamul(16, 16, 16, (double *)temp_kal.P_matrix, (double *)tmp1, (double *)temp_kal.P_forecast);
+
+	//更新 X
+	vecmul(3, 16, tmp5, (double *)temp_kal.H_matrix, temp_kal.X_forecast);
+	vecsub(3, tmp5, temp_kal.Mea_vector, tmp5);
+	vecmul(16, 3, tmp6, (double *)K_matrix, tmp5);
+	vecadd(16, temp_kal.X_vector, temp_kal.X_forecast, tmp6);
+}
 void Kal_forecast_15(SKALMAN_15_3& temp_kal, double fil_del, double F_15[15][15])              //20171115
 {
 	int		i, j;
@@ -314,6 +449,37 @@ void Kal_forecast_15(SKALMAN_15_3& temp_kal, double fil_del, double F_15[15][15]
 	mamul(15, 15, 15, (double *)tmp1, (double *)temp_kal.state_dis, (double *)temp_kal.P_matrix);
 	mamul(15, 15, 15, (double *)tmp1, (double *)tmp1, (double *)state_transpose);
 	maadd(15, 15, (double *)temp_kal.P_matrix, (double *)tmp1, (double *)Q_dis);
+}
+void Kal_forecast_16(SKALMAN_16_3& temp_kal, double fil_del, double F_16[16][16])              //20171128
+{
+	int		i, j;
+	double	unit_matr[16][16], tmp1[16][16], state_transpose[16][16], Q_dis[16][16];
+
+	for (i = 0; i < 16; i++)
+	for (j = 0; j < 16; j++)
+	{
+		if (i == j)
+			unit_matr[i][j] = 1.;
+		else
+			unit_matr[i][j] = 0.;
+	}
+
+	//一步预测 X,只预测时，预测的X值即认为是X估计值
+	amamul(16, 16, (double *)F_16, (double *)F_16, fil_del);
+	maadd(16, 16, (double *)temp_kal.state_dis, (double *)unit_matr, (double *)F_16);
+	vecmul(16, 16, temp_kal.X_vector, (double *)temp_kal.state_dis, temp_kal.X_vector);
+
+	//离散化 Q
+	mamul(16, 16, 16, (double *)tmp1, (double *)temp_kal.state_dis, (double *)temp_kal.Q_state);
+	maturn(16, 16, (double *)state_transpose, (double *)temp_kal.state_dis);
+	mamul(16, 16, 16, (double *)tmp1, (double *)tmp1, (double *)state_transpose);
+	maadd(16, 16, (double *)Q_dis, (double *)temp_kal.Q_state, (double *)tmp1);
+	amamul(16, 16, (double *)Q_dis, (double *)Q_dis, fil_del / 2);
+
+	//预测 P
+	mamul(16, 16, 16, (double *)tmp1, (double *)temp_kal.state_dis, (double *)temp_kal.P_matrix);
+	mamul(16, 16, 16, (double *)tmp1, (double *)tmp1, (double *)state_transpose);
+	maadd(16, 16, (double *)temp_kal.P_matrix, (double *)tmp1, (double *)Q_dis);
 }
 //传入参数为参考位置。
 void fine_yucia(SKALMAN_15_3& temp_kal, double observer[3],char mode)
@@ -354,7 +520,7 @@ void fine_yucia(SKALMAN_15_3& temp_kal, double observer[3],char mode)
 		}
 	}
 }
-void navi_Kal_15_3(SKALMAN_15_3& temp_kal, double observer[3], char mode)
+void navi_Kal_15_3(SKALMAN_15_3& temp_kal, double observer[3], char mode)  //有问题 关于observer到底是外信息还是Zk  20171128
 {
 	int i = 0;
 	double F_15[15][15] = { 0 };
@@ -385,5 +551,56 @@ void navi_Kal_15_3(SKALMAN_15_3& temp_kal, double observer[3], char mode)
 		}
 	}
 	
+}
+
+void navi_Kal_16_3(SKALMAN_16_3& temp_kal, double observer[3])       //20171128  后期看一下里面的子函数是否可以和15维统一，优化
+{
+	int i = 0;
+	double F_16[16][16] = { 0 };
+
+	F_matrix_16(infor, F_16);                       
+	Kal_forecast_16(temp_kal, sysc.Ts, F_16);                   
+	if (0 == sysc.data_cnt % (sysc.Fs / sysc.Kal_fr))
+	{
+		vecmul(3, 3, infor.vel_b, (double*)infor.cnb_mat, infor.vel_n);
+		vecsub(3, temp_kal.Mea_vector, infor.vel_b, observer);  //Zk
+
+		temp_kal.H_matrix[0][0] = infor.cnb_mat[0][0]; temp_kal.H_matrix[0][1] = infor.cnb_mat[0][1]; temp_kal.H_matrix[0][2] = infor.cnb_mat[0][2];
+		temp_kal.H_matrix[1][0] = infor.cnb_mat[1][0]; temp_kal.H_matrix[1][1] = infor.cnb_mat[1][1]; temp_kal.H_matrix[1][2] = infor.cnb_mat[1][2];
+		temp_kal.H_matrix[2][0] = infor.cnb_mat[2][0]; temp_kal.H_matrix[2][1] = infor.cnb_mat[2][1]; temp_kal.H_matrix[2][2] = infor.cnb_mat[2][2];	
+		temp_kal.H_matrix[0][3] = infor.cnb_mat[0][2] * infor.vel_n[1] - infor.cnb_mat[0][1] * infor.vel_n[2];
+		temp_kal.H_matrix[0][4] = infor.cnb_mat[0][0] * infor.vel_n[2] - infor.cnb_mat[0][2] * infor.vel_n[0];
+		temp_kal.H_matrix[0][5] = infor.cnb_mat[0][1] * infor.vel_n[0] - infor.cnb_mat[0][0] * infor.vel_n[1];
+		temp_kal.H_matrix[1][3] = infor.cnb_mat[1][2] * infor.vel_n[1] - infor.cnb_mat[1][1] * infor.vel_n[2];
+		temp_kal.H_matrix[1][4] = infor.cnb_mat[1][0] * infor.vel_n[2] - infor.cnb_mat[1][2] * infor.vel_n[0];
+		temp_kal.H_matrix[1][5] = infor.cnb_mat[1][1] * infor.vel_n[0] - infor.cnb_mat[1][0] * infor.vel_n[1];
+		temp_kal.H_matrix[2][3] = infor.cnb_mat[2][2] * infor.vel_n[1] - infor.cnb_mat[2][1] * infor.vel_n[2];
+		temp_kal.H_matrix[2][4] = infor.cnb_mat[2][0] * infor.vel_n[2] - infor.cnb_mat[2][2] * infor.vel_n[0];
+		temp_kal.H_matrix[2][5] = infor.cnb_mat[2][1] * infor.vel_n[0] - infor.cnb_mat[2][0] * infor.vel_n[1];
+		temp_kal.H_matrix[0][15] = -infor.vel_b[0];
+		temp_kal.H_matrix[1][15] = -infor.vel_b[1];
+		temp_kal.H_matrix[2][15] = -infor.vel_b[2];
+
+		Kal_update_16_3(temp_kal, 1);
+		if (sysc.cnt_s >= sysc.algn_time + 3)//20s之后开始校正
+		{
+			vecsub(3, infor.vel_n, infor.vel_n, temp_kal.X_vector);
+			vecsub(3, infor.pos, infor.pos, temp_kal.X_vector + 6);
+			double cnn[3][3] = { 0.0 };
+			X2cnn(cnn, temp_kal.X_vector + 3);
+			mamul(3, 3, 3, (double *)infor.cnb_mat, (double *)infor.cnb_mat, (double *)cnn);
+			maturn(3, 3, (double*)infor.cbn_mat, (double*)infor.cnb_mat);
+			cnb2ang(infor.cnb_mat, infor.att_angle);
+			cnb2q(infor.cnb_mat, infor.quart);
+			for (i = 0; i < 9; i++)
+				temp_kal.X_vector[i] = 0.0;
+			for (i = 0; i < 3; i++)
+			{
+				infor.gyro_bias_esti[i] = temp_kal.X_vector[12 + i] * 180 / 3.14 * 3600;
+				infor.acce_bias_esti[i] = temp_kal.X_vector[9 + i] * 1000000 / 9.78;
+			}
+		}
+	}
+
 }
 #pragma endregion DP yucia_Kalman

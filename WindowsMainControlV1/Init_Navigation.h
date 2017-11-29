@@ -17,6 +17,9 @@ extern GPS gps;
 extern CALIPMT calipara;//标定参数
 extern ZTPARA ZT;
 extern SKALMAN_15_3 fkalman;
+extern SKALMAN_15_3 nkalman;
+extern SKALMAN_16_3 kalman_dvl;          //20171128         
+
 extern INSCAL INScal;
 extern FOSN fosn;
 extern SYSTEMCTRL sysc;
@@ -27,5 +30,6 @@ void init_basicnavi(void);                    //基础导航参数初始化
 void init_coarsealign(void);                  //粗对准参数初始化
 void init_cmp(void);                          //罗经参数初始化
 void init_adrc(void);
-void Kal_Init_P_15(char mode);
+void Kal_Init_P_15(SKALMAN_15_3& temp_kal,char mode);
+void Kal_Init_P_16(SKALMAN_16_3& temp_kal);   
 void kalinitial(void);

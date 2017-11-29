@@ -37,8 +37,8 @@
 #define    YA_POS       1							//基于Yucia算法的15/3 组合系统位置组合
 #define    YA_VEL       2							//基于Yucia算法的15/3 组合系统速度组合
 #define    YA_VELANDAZ  3							//基于Yucia算法的15/3 组合系统水平速度+航向组合
-#define    YA_FOSN      1							//基于Yucia算法的15/3 组合系统FOSN数据P Q R初始化
-#define    YA_SIMU      2							//基于Yucia算法的15/3 组合系统仿真数据P Q R初始化
+//#define    YA_FOSN      1							//基于Yucia算法的15/3 组合系统FOSN数据P Q R初始化    //没用到，作甚？
+//#define    YA_SIMU      2							//基于Yucia算法的15/3 组合系统仿真数据P Q R初始化
 
 // 导航模式选择
 #define    NAVI_SINS_UNDUMP   0                      // 纯捷联无阻尼
@@ -309,13 +309,15 @@ public:
 	double vel[3];
 	double pos[3];
 	double ang[3];
+	double vel_b[3];
 	int cnt;
 	double utc;
 	PHINS() 
 	{
 		memset(vel,0,sizeof(vel));
 		memset(pos, 0, sizeof(pos));
-		memset(ang, 0, sizeof(ang));	
+		memset(ang, 0, sizeof(ang));
+		memset(vel_b, 0, sizeof(vel_b));
 		cnt = 0;
 		utc = 0;
 	}
@@ -324,6 +326,7 @@ public:
 		memset(vel, 0, sizeof(vel));
 		memset(pos, 0, sizeof(pos));
 		memset(ang, 0, sizeof(ang));
+		memset(vel_b, 0, sizeof(vel_b));
 		cnt = 0;
 		utc = 0;
 	}
@@ -358,6 +361,19 @@ struct SKALMAN_15_3                   //20171108
 	double	Q_state[15][15];      //系统噪声方差阵
 	double	R_measure[3][3];   //观测噪声方差阵
 	double	H_matrix[3][15];    //								
+	double	Mea_vector[3];              //观测量	
+};
+// 状态量15维观测量3维的Kalman结构体, 用于kalman精对准、最基本INS_GPS,INS_DVL组合导航
+struct SKALMAN_16_3                   //20171108
+{
+	double	X_vector[16];         //状态量X为15维
+	double  X_forecast[16];       //一步预测的X值
+	double	state_dis[16][16];    // 状态转移矩阵；
+	double	P_matrix[16][16];     //误差方差阵；
+	double  P_forecast[16][16];    //一步预测的P值
+	double	Q_state[16][16];      //系统噪声方差阵
+	double	R_measure[3][3];   //观测噪声方差阵
+	double	H_matrix[3][16];    //								
 	double	Mea_vector[3];              //观测量	
 };
 // 通用型kalman滤波器设计尝试,暂时设计21*7维。21的目前不知道怎么用，7维考虑3速度3位置1航向等
