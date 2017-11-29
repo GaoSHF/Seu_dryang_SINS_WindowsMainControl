@@ -246,7 +246,7 @@ void F_matrix_15(SYS_ELEMENT temp_infor,double F_15[15][15])
 	F_15[8][2] = 1;
 
 }
-<<<<<<< HEAD
+
 //@brief  根据puresins结构体参数求取16维F阵
 void F_matrix_16(SYS_ELEMENT temp_infor, double F_16[16][16])
 {
@@ -343,9 +343,7 @@ void F_matrix_16(SYS_ELEMENT temp_infor, double F_16[16][16])
 	F_16[8][2] = 1;
 
 }
-=======
 
->>>>>>> 018adce56d7b29bd6af60d98f26b9c800fbe988a
 void Kal_update_15_3(SKALMAN_15_3& temp_kal, double kal_Ts)                   //20171115
 {
 	int		i, j;
@@ -524,12 +522,10 @@ void fine_yucia(SKALMAN_15_3& temp_kal, double observer[3],char mode)
 		}
 	}
 }
-<<<<<<< HEAD
-void navi_Kal_15_3(SKALMAN_15_3& temp_kal, double observer[3], char mode)  //有问题 关于observer到底是外信息还是Zk  20171128
-=======
+
 //1,没有时间限制；2，输入的观测量是差值
-void navi_Kal_15_3(SKALMAN_15_3& temp_kal, double observer[3], char mode)
->>>>>>> 018adce56d7b29bd6af60d98f26b9c800fbe988a
+void navi_Kal_15_3(SKALMAN_15_3& temp_kal, double observer[3], char mode)  //有问题 关于observer到底是外信息还是Zk  20171128
+
 {
 	int i = 0;
 	double F_15[15][15] = { 0 };
