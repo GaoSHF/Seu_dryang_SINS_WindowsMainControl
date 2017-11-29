@@ -248,7 +248,11 @@ void init_adrc(void)
 	adrc.azi5=0.4;
 }
 //¿¨¶ûÂüË«Î»ÖÃ¾«¶Ô×¼³õÊ¼»¯(15Î¬Î»ÖÃÆ¥Åä)£¬Ä£Ê½¾ö¶¨Ê²Ã´×éºÏ//0~2ËÙ¶ÈÎó²î£¬3~5×ËÌ¬Îó²î£¬9~11ÊÇ¼Ó±í³£Öµ£¬12~14ÊÇÍÓÂÝ³£Öµ
+<<<<<<< HEAD
 void Kal_Init_P_15(SKALMAN_15_3& temp_kal,char mode)              //RÕóµÄ³õÖµÐèÒªÔÙ¿¼ÂÇ  
+=======
+void Kal_Init_P_15(SKALMAN_15_3& temp_kal,char mode)              //20171108
+>>>>>>> 018adce56d7b29bd6af60d98f26b9c800fbe988a
 {
 	memset(temp_kal.P_matrix, 0, sizeof(temp_kal.P_matrix));
 
@@ -283,29 +287,45 @@ void Kal_Init_P_15(SKALMAN_15_3& temp_kal,char mode)              //RÕóµÄ³õÖµÐèÒ
 	temp_kal.Q_state[5][5] = temp_kal.Q_state[3][3];
 
 	memset(temp_kal.R_measure, 0, sizeof(temp_kal.R_measure));
+<<<<<<< HEAD
 
 	temp_kal.R_measure[0][0] = powl(1 / RE, 2);
 	temp_kal.R_measure[1][1] = powl(1 / RE, 2);
 	temp_kal.R_measure[2][2] = powl(1, 2);
 
+=======
+>>>>>>> 018adce56d7b29bd6af60d98f26b9c800fbe988a
 	memset(temp_kal.H_matrix, 0, sizeof(temp_kal.H_matrix));
 	if (mode == YA_POS)
 	{
 		temp_kal.H_matrix[0][6] = 1;
 		temp_kal.H_matrix[1][7] = 1;
 		temp_kal.H_matrix[2][8] = 1;
+<<<<<<< HEAD
+=======
+		temp_kal.R_measure[0][0] = powl(1 / RE, 2);
+		temp_kal.R_measure[1][1] = powl(1 / RE, 2);
+		temp_kal.R_measure[2][2] = powl(1, 2);
+>>>>>>> 018adce56d7b29bd6af60d98f26b9c800fbe988a
 	}
 	if (mode == YA_VEL)
 	{
 		temp_kal.H_matrix[0][0] = 1;
 		temp_kal.H_matrix[1][1] = 1;
 		temp_kal.H_matrix[2][2] = 1;
+<<<<<<< HEAD
+=======
+		temp_kal.R_measure[0][0] = powl(0.1, 2);
+		temp_kal.R_measure[1][1] = powl(0.1, 2);
+		temp_kal.R_measure[2][2] = powl(0.1, 2);
+>>>>>>> 018adce56d7b29bd6af60d98f26b9c800fbe988a
 	}
 	if (mode == YA_VELANDAZ)
 	{
 		temp_kal.H_matrix[0][0] = 1;
 		temp_kal.H_matrix[1][1] = 1;
 		temp_kal.H_matrix[2][5] = -1;
+<<<<<<< HEAD
 	}
 
 	memset(temp_kal.X_vector, 0, sizeof(temp_kal.X_vector));
@@ -356,6 +376,14 @@ void Kal_Init_P_16(SKALMAN_16_3& temp_kal)              //   20171128
 
 	memset(temp_kal.H_matrix, 0, sizeof(temp_kal.H_matrix));
 	memset(temp_kal.X_vector, 0, sizeof(temp_kal.X_vector));
+=======
+		temp_kal.R_measure[0][0] = powl(0.1, 2);
+		temp_kal.R_measure[1][1] = powl(0.1, 2);
+		temp_kal.R_measure[2][2] = powl(0.5*D2R, 2);
+	}
+
+	memset(temp_kal.X_vector, 0, sizeof(temp_kal.X_vector));
+>>>>>>> 018adce56d7b29bd6af60d98f26b9c800fbe988a
 }
 //Éè±¸³ÌÐòÓÃµÄkalmanÂË²¨³õÊ¼»¯
 void kalinitial()

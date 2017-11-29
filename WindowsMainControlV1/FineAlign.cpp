@@ -246,6 +246,7 @@ void F_matrix_15(SYS_ELEMENT temp_infor,double F_15[15][15])
 	F_15[8][2] = 1;
 
 }
+<<<<<<< HEAD
 //@brief  ¸ù¾Ýpuresins½á¹¹Ìå²ÎÊýÇóÈ¡16Î¬FÕó
 void F_matrix_16(SYS_ELEMENT temp_infor, double F_16[16][16])
 {
@@ -342,6 +343,9 @@ void F_matrix_16(SYS_ELEMENT temp_infor, double F_16[16][16])
 	F_16[8][2] = 1;
 
 }
+=======
+
+>>>>>>> 018adce56d7b29bd6af60d98f26b9c800fbe988a
 void Kal_update_15_3(SKALMAN_15_3& temp_kal, double kal_Ts)                   //20171115
 {
 	int		i, j;
@@ -443,7 +447,7 @@ void Kal_forecast_15(SKALMAN_15_3& temp_kal, double fil_del, double F_15[15][15]
 	maturn(15, 15, (double *)state_transpose, (double *)temp_kal.state_dis);
 	mamul(15, 15, 15, (double *)tmp1, (double *)tmp1, (double *)state_transpose);
 	maadd(15, 15, (double *)Q_dis, (double *)temp_kal.Q_state, (double *)tmp1);
-	amamul(15, 15, (double *)Q_dis, (double *)Q_dis, fil_del / 2);
+	amamul(15, 15, (double *)Q_dis, (double *)Q_dis, fil_del / 2.0);
 
 	//Ô¤²â P
 	mamul(15, 15, 15, (double *)tmp1, (double *)temp_kal.state_dis, (double *)temp_kal.P_matrix);
@@ -520,7 +524,12 @@ void fine_yucia(SKALMAN_15_3& temp_kal, double observer[3],char mode)
 		}
 	}
 }
+<<<<<<< HEAD
 void navi_Kal_15_3(SKALMAN_15_3& temp_kal, double observer[3], char mode)  //ÓÐÎÊÌâ ¹ØÓÚobserverµ½µ×ÊÇÍâÐÅÏ¢»¹ÊÇZk  20171128
+=======
+//1,Ã»ÓÐÊ±¼äÏÞÖÆ£»2£¬ÊäÈëµÄ¹Û²âÁ¿ÊÇ²îÖµ
+void navi_Kal_15_3(SKALMAN_15_3& temp_kal, double observer[3], char mode)
+>>>>>>> 018adce56d7b29bd6af60d98f26b9c800fbe988a
 {
 	int i = 0;
 	double F_15[15][15] = { 0 };
@@ -529,7 +538,7 @@ void navi_Kal_15_3(SKALMAN_15_3& temp_kal, double observer[3], char mode)  //ÓÐÎ
 	Kal_forecast_15(temp_kal, sysc.Ts, F_15);                   //20171115   15Î¬Ò»²½Ô¤²âÍ¨ÓÃËã·¨ ÊÊÓÃÓÚËùÓÐ SKALMAN_15_3½á¹¹Ìå
 	if (0 == sysc.data_cnt % (sysc.Fs / sysc.Kal_fr))
 	{
-		vecsub(3, temp_kal.Mea_vector, infor.pos, observer);
+		avecmul(3,temp_kal.Mea_vector, observer, 1.0);
 		Kal_update_15_3(temp_kal, 1);
 		if (sysc.cnt_s >= sysc.algn_time + 20)//20sÖ®ºó¿ªÊ¼Ð£Õý
 		{
