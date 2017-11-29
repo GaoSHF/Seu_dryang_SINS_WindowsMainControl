@@ -427,15 +427,6 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnStartcal()
 	if (is_startCal)
 	{
 		UpdateData(true);
-
-<<<<<<< HEAD
-	
-=======
-		//捷联初始化
-		init_basicnavi();     //只是赋0，防止出问题，初始化在getFiledata()里做   //  20171128
-		sysc.Fs=edit_data_f;
-		sysc.Ts = 1.0 / sysc.Fs;	
->>>>>>> 2997a8367e3c59062ccafd22e72a2dad6a4b9bd3
 		//根据模式进行初始化
 		TestModeNum = m_TestMode.GetCurSel();
 		CoarseModeNum = m_CoarseAignMode.GetCurSel();
@@ -477,11 +468,9 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnStartcal()
 				init_cmp(); //初始化罗经参数	
 				if (FineModeNum == 1)sysc.algn_time = sysc.coarse_time + sysc.fine_level + sysc.fine_azimuth;//把水平和航向时间加起来得到精对准总时间，再加上粗对准的时间。
 				break;	
-<<<<<<< HEAD
+
 			case FINE_Yucia: Kal_Init_P_15(fkalman,YA_POS); break;
-=======
-			case FINE_Yucia: Kal_Init_P_15(fkalman,YA_POS); break;   //
->>>>>>> 2997a8367e3c59062ccafd22e72a2dad6a4b9bd3
+
 			case FINE_ADRC: init_adrc(); break;
 			default: break;
 			}
@@ -491,16 +480,11 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnStartcal()
 		switch (NaviModeNum)
 		{
 		case NAVI_HAISHI_BASIC:case NAVI_HAISHI_JZ:kalinitial(); break;
-<<<<<<< HEAD
-		case NAVI_SG:case NAVI_PHINS_POS: Kal_Init_P_15(fkalman, YA_POS); break;
-		case NAVI_VEL:case NAVI_PHINS_VEL1:case NAVI_PHINS_VEL2: Kal_Init_P_15(fkalman, YA_VEL); break;
-		case NAVI_VELANDAZ:Kal_Init_P_15(fkalman, YA_VELANDAZ); break;
-=======
 		case NAVI_SG:case NAVI_PHINS_POS: Kal_Init_P_15(nkalman,YA_POS); break;   //20171128  导航阶段的kalman对象与精对准不用同一个
 		case NAVI_VEL:case NAVI_PHINS_VEL1: Kal_Init_P_15(nkalman,YA_VEL); break; //20171128  导航阶段的kalman对象与精对准不用同一个
 		case NAVI_PHINS_VEL2: Kal_Init_P_16(kalman_dvl); break;      //20171128 Vb组合的H阵初始值设0，需要实时更新。
 		case NAVI_VELANDAZ:Kal_Init_P_15(nkalman,YA_VELANDAZ); break;  //20171128  导航阶段的kalman对象与精对准不用同一个
->>>>>>> 2997a8367e3c59062ccafd22e72a2dad6a4b9bd3
+
 		default: break;
 		}
 		if (RS_para.delay5ms == 1)
@@ -1370,7 +1354,6 @@ void CWindowsMainControlV1Dlg::getfileData()
 			&fosn.time,
 			&IMUout.gyro_b[0], &IMUout.gyro_b[1], &IMUout.gyro_b[2],  //单位 °
 			&IMUout.acce_b[0], &IMUout.acce_b[1], &IMUout.acce_b[2],
-<<<<<<< HEAD
 			&ZT.ang[0], &ZT.ang[1], &ZT.ang[2],
 			&phins.vel[0], &phins.vel[1], &phins.vel[2],
 			&phins.pos[0], &phins.pos[1], &phins.pos[2]);
@@ -1381,14 +1364,6 @@ void CWindowsMainControlV1Dlg::getfileData()
 		memcpy(phins.ang, ZT.ang, sizeof(ZT.ang));
 		real_pos[0] = real_pos[0] * D2R;
 		real_pos[1] = real_pos[1] * D2R;
-=======
-			&phins.ang[0], &phins.ang[1], &phins.ang[2],            //单位 °
-			&phins.vel[0], &phins.vel[1], &phins.vel[2],   
-			&phins.pos[0], &phins.pos[1], &phins.pos[2]);		 //单位 °
-		ZT.ang[0] = phins.ang[0];
-		ZT.ang[1] = phins.ang[1];
-		ZT.ang[2] = phins.ang[2];
->>>>>>> 2997a8367e3c59062ccafd22e72a2dad6a4b9bd3
 	}
 	if (RS_para.file_mode == 7)//haishi数据测试
 	{
