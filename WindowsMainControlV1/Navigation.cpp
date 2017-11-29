@@ -35,6 +35,8 @@ void sinscal_zundamp(double quart_del )
 		memset(win_b, 0, sizeof(win_b));
 	vecadd(3,a_wib_b,infor.gyro_wib_b,infor.gyro_old);
  	avecmul(3,a_wib_b,a_wib_b,0.5);
+//	avecmul(3, a_wib_b, infor.gyro_wib_b, 1);  //yuciaµ˜ ‘”√
+
 	vecsub(3,wnb_b,a_wib_b,win_b);
 	avecmul(3,sita,wnb_b,quart_del);
 

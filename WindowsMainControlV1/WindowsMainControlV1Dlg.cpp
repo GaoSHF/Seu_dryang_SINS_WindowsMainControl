@@ -428,7 +428,14 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnStartcal()
 	{
 		UpdateData(true);
 
+<<<<<<< HEAD
 	
+=======
+		//捷联初始化
+		init_basicnavi();     //只是赋0，防止出问题，初始化在getFiledata()里做   //  20171128
+		sysc.Fs=edit_data_f;
+		sysc.Ts = 1.0 / sysc.Fs;	
+>>>>>>> 2997a8367e3c59062ccafd22e72a2dad6a4b9bd3
 		//根据模式进行初始化
 		TestModeNum = m_TestMode.GetCurSel();
 		CoarseModeNum = m_CoarseAignMode.GetCurSel();
@@ -470,7 +477,11 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnStartcal()
 				init_cmp(); //初始化罗经参数	
 				if (FineModeNum == 1)sysc.algn_time = sysc.coarse_time + sysc.fine_level + sysc.fine_azimuth;//把水平和航向时间加起来得到精对准总时间，再加上粗对准的时间。
 				break;	
+<<<<<<< HEAD
 			case FINE_Yucia: Kal_Init_P_15(fkalman,YA_POS); break;
+=======
+			case FINE_Yucia: Kal_Init_P_15(fkalman,YA_POS); break;   //
+>>>>>>> 2997a8367e3c59062ccafd22e72a2dad6a4b9bd3
 			case FINE_ADRC: init_adrc(); break;
 			default: break;
 			}
@@ -480,9 +491,16 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnStartcal()
 		switch (NaviModeNum)
 		{
 		case NAVI_HAISHI_BASIC:case NAVI_HAISHI_JZ:kalinitial(); break;
+<<<<<<< HEAD
 		case NAVI_SG:case NAVI_PHINS_POS: Kal_Init_P_15(fkalman, YA_POS); break;
 		case NAVI_VEL:case NAVI_PHINS_VEL1:case NAVI_PHINS_VEL2: Kal_Init_P_15(fkalman, YA_VEL); break;
 		case NAVI_VELANDAZ:Kal_Init_P_15(fkalman, YA_VELANDAZ); break;
+=======
+		case NAVI_SG:case NAVI_PHINS_POS: Kal_Init_P_15(nkalman,YA_POS); break;   //20171128  导航阶段的kalman对象与精对准不用同一个
+		case NAVI_VEL:case NAVI_PHINS_VEL1: Kal_Init_P_15(nkalman,YA_VEL); break; //20171128  导航阶段的kalman对象与精对准不用同一个
+		case NAVI_PHINS_VEL2: Kal_Init_P_16(kalman_dvl); break;      //20171128 Vb组合的H阵初始值设0，需要实时更新。
+		case NAVI_VELANDAZ:Kal_Init_P_15(nkalman,YA_VELANDAZ); break;  //20171128  导航阶段的kalman对象与精对准不用同一个
+>>>>>>> 2997a8367e3c59062ccafd22e72a2dad6a4b9bd3
 		default: break;
 		}
 		if (RS_para.delay5ms == 1)
@@ -1350,8 +1368,9 @@ void CWindowsMainControlV1Dlg::getfileData()
 	{
 		fscanf_s(RS_para.RdataFilefid, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
 			&fosn.time,
-			&IMUout.gyro_b[0], &IMUout.gyro_b[1], &IMUout.gyro_b[2], 
+			&IMUout.gyro_b[0], &IMUout.gyro_b[1], &IMUout.gyro_b[2],  //单位 °
 			&IMUout.acce_b[0], &IMUout.acce_b[1], &IMUout.acce_b[2],
+<<<<<<< HEAD
 			&ZT.ang[0], &ZT.ang[1], &ZT.ang[2],
 			&phins.vel[0], &phins.vel[1], &phins.vel[2],
 			&phins.pos[0], &phins.pos[1], &phins.pos[2]);
@@ -1362,6 +1381,14 @@ void CWindowsMainControlV1Dlg::getfileData()
 		memcpy(phins.ang, ZT.ang, sizeof(ZT.ang));
 		real_pos[0] = real_pos[0] * D2R;
 		real_pos[1] = real_pos[1] * D2R;
+=======
+			&phins.ang[0], &phins.ang[1], &phins.ang[2],            //单位 °
+			&phins.vel[0], &phins.vel[1], &phins.vel[2],   
+			&phins.pos[0], &phins.pos[1], &phins.pos[2]);		 //单位 °
+		ZT.ang[0] = phins.ang[0];
+		ZT.ang[1] = phins.ang[1];
+		ZT.ang[2] = phins.ang[2];
+>>>>>>> 2997a8367e3c59062ccafd22e72a2dad6a4b9bd3
 	}
 	if (RS_para.file_mode == 7)//haishi数据测试
 	{
@@ -1418,6 +1445,9 @@ void CWindowsMainControlV1Dlg::getfileData()
 				initial_latitude = infor.pos[0] * R2D;
 				initial_longitude = infor.pos[1] * R2D;
 				initial_height = infor.pos[2];
+				infor.vel_n[0] = phins.vel[0];       //20171129
+				infor.vel_n[1] = phins.vel[1];
+				infor.vel_n[2] = phins.vel[2];
 			}
 			if (RS_para.file_mode == 7)
 			{				
@@ -1579,7 +1609,21 @@ void CWindowsMainControlV1Dlg::SaveData()
 				phins.vel[0], phins.vel[1], phins.vel[2],
 				phins.pos[2], phins.pos[0], phins.pos[1]);
 		if (TestModeNum == 6)
-		{		
+		{
+			if (NaviModeNum == NAVI_PHINS_VEL2)
+			{
+				fprintf_s(fid_Cal, "%lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf\n",
+					fosn.time,
+					IMUout.gyro_b[0], IMUout.gyro_b[1], IMUout.gyro_b[2],
+					IMUout.acce_b[0], IMUout.acce_b[1], IMUout.acce_b[2],
+					INScal.ang[0], INScal.ang[1], INScal.ang[2],
+					INScal.vel[0], INScal.vel[1], INScal.vel[2],
+					INScal.pos[0], INScal.pos[1], INScal.pos[2],
+					kalman_dvl.X_vector[9], kalman_dvl.X_vector[10], kalman_dvl.X_vector[11],
+					kalman_dvl.X_vector[12], kalman_dvl.X_vector[13], kalman_dvl.X_vector[14], kalman_dvl.X_vector[15]);
+				fflush(fid_Cal);
+				return;
+			}
 			if (FineModeNum == FINE_Yucia)
 			{			
 				fprintf_s(fid_Cal, "%lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf\n",
@@ -1796,8 +1840,13 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 	int j;
 	double tempob[3] = {0};//15/3滤波器的3维观测量
 	double tempob_v[3] = { 0 }; //速度观测量
+	double tempob_vb[3] = { 0 }; //计程仪（phins）b系速度观测量  
 	double tempob_att[3] = { 0 };//姿态观测量
 	double gyro[2][3] = { 0 };
+	double cnb_phins[3][3] = { 0 };//用来存放phins的Cnb,INS/DVL组合用
+	double fix_err[3] = {0.0153*D2R,-0.1891*D2R,-0.1724*D2R}, Cpb[3][3] = { 0 };
+	ang2cnb(Cpb, fix_err);   //p（phins系）为下标
+
 	if (!sysc.f_navi_over&&sysc.f_coarse_over&&sysc.f_fine_over)
 	{
 		temp_test = false;
@@ -1872,12 +1921,14 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 				navi_Kal_15_3(fkalman, tempob, YA_POS);
 				sysc.state = _T("PS位置组合");
 				break;
+
 			case NAVI_VELANDAZ:
 				avecmul(3, tempob_att, phins.ang, D2R);//观测量的获得方式
 				avecmul(3, tempob_v, phins.vel , 1);
 
 				vecsub(3, tempob, infor.att_angle, tempob_att);				
 				DeltaAtt2Phi(infor, tempob, tempob);//姿态误差角到失准角处理
+
 				vecsub(2, tempob, infor.vel_n, tempob_v);
 				//输入的观测量已经是差值
 				navi_Kal_15_3(fkalman,tempob, YA_VELANDAZ);
@@ -1885,7 +1936,6 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 				break;
 			case NAVI_PHINS_VEL1:
 				avecmul(3, tempob_v, phins.vel, 1);//观测量的获得方式
-
 				vecsub(3, tempob, infor.vel_n, tempob_v);
 				//输入的观测量已经是差值
 				navi_Kal_15_3(fkalman,tempob, YA_VELANDAZ);
@@ -1898,6 +1948,15 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 			case NAVI_HAISHI_JZ:
 				navigation(phins.vel[0], phins.vel[1], phins.ang[2] * D2R, NAVI_HAISHI_JZ); 
 				sysc.state = _T("haishi降噪滤波"); 
+				break;
+			case NAVI_PHINS_VEL2:                           //20171128	
+				avecmul(3, tempob_v, phins.ang, D2R);//乘以刻度因子
+				ang2cnb(cnb_phins, tempob_v);
+				vecmul(3, 3, phins.vel_b, (double*)cnb_phins, phins.vel);
+				avecmul(3, tempob_v, phins.vel_b, 1.04);//乘以刻度因子
+				vecmul(3, 3, tempob, (double*)Cpb, tempob_v); //phins系速度转到fosn系
+				navi_Kal_16_3(kalman_dvl, tempob); 
+				sysc.state = _T("计程仪速度组合");
 				break;
 			default:break;
 			}
@@ -1985,7 +2044,7 @@ UINT CWindowsMainControlV1Dlg::SimulateThread(LPVOID pParam)
 	static long int rec_count = 0;
 	while (!mquit)
 	{
-		if (RS_para.canCal&&isStartCalOk)
+		if (RS_para.canCal&&isStartCalOk)     //isStartCalOk解算开始之后才会开始解算，所以保证了初始化在解算之前  20171128 
 		{
 			getfileData();
 			if (RS_para.RS_mode == 0)
