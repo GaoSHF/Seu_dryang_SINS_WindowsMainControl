@@ -524,8 +524,7 @@ void fine_yucia(SKALMAN_15_3& temp_kal, double observer[3],char mode)
 }
 
 //1,没有时间限制；2，输入的观测量是差值
-void navi_Kal_15_3(SKALMAN_15_3& temp_kal, double observer[3], char mode)  //有问题 关于observer到底是外信息还是Zk  20171128
-
+void navi_Kal_15_3(SKALMAN_15_3& temp_kal, double observer[3], char mode)
 {
 	int i = 0;
 	double F_15[15][15] = { 0 };

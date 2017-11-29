@@ -31,8 +31,5 @@ void init_coarsealign(void);                  //粗对准参数初始化
 void init_cmp(void);                          //罗经参数初始化
 void init_adrc(void);
 void Kal_Init_P_15(SKALMAN_15_3& temp_kal,char mode);
-<<<<<<< HEAD
 void Kal_Init_P_16(SKALMAN_16_3& temp_kal);   
-=======
->>>>>>> 018adce56d7b29bd6af60d98f26b9c800fbe988a
 void kalinitial(void);
