@@ -1354,14 +1354,11 @@ void CWindowsMainControlV1Dlg::getfileData()
 			&fosn.time,
 			&IMUout.gyro_b[0], &IMUout.gyro_b[1], &IMUout.gyro_b[2],  //单位 °
 			&IMUout.acce_b[0], &IMUout.acce_b[1], &IMUout.acce_b[2],
-			&ZT.ang[0], &ZT.ang[1], &ZT.ang[2],
+			&phins.ang[0], &phins.ang[1], &phins.ang[2],
 			&phins.vel[0], &phins.vel[1], &phins.vel[2],
 			&phins.pos[0], &phins.pos[1], &phins.pos[2]);
-		ZT.ang[0] = ZT.ang[0]*R2D;
-		ZT.ang[1] = ZT.ang[1]*R2D;
-		ZT.ang[2] = ZT.ang[2]*R2D;		
 		memcpy(real_pos, phins.pos, sizeof(phins.pos));
-		memcpy(phins.ang, ZT.ang, sizeof(ZT.ang));
+		memcpy(ZT.ang, phins.ang, sizeof(ZT.ang));
 		real_pos[0] = real_pos[0] * D2R;
 		real_pos[1] = real_pos[1] * D2R;
 	}
@@ -1536,35 +1533,64 @@ void CWindowsMainControlV1Dlg::SaveData()
 					ZT.ang[0], ZT.ang[1], ZT.ang[2],
 					fosn.ang[0], fosn.ang[1], fosn.ang[2]);
 #pragma region Datacz
-		if (TestModeNum == 1)//车载实验数据标准格式
-			/*1~5 帧号录数统计，转台帧号/多功能版帧号/备用，fosn时间,gps时间，phins时间
-			6~11  陀螺加表（陀螺单位为 度/S）
-			12~14 解算姿态
-			15~17 解算速度
-			18~20 解算位置
-			21~23 PHINS姿态
-			24~26 PHINS速度
-			27~29 PHINS位置
-			30~35 GPS位置，速度（没有）
-			36~38 FOSN姿态
-			39~41 FOSN速度
-			42~44 FOSN位置
-												|陀螺                 加表                |解算姿态            速度                  位置                |PS姿态               速度                位置                 |GPS位置              速度                |FOSN姿态            速度                 位置    */
-			fprintf_s(fid_Cal, "%d,%d,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf\n",
-				fosn.recnum, ZT.cnt, fosn.time, gps.time, phins.utc,
-				IMUout.gyro_b[0], IMUout.gyro_b[1], IMUout.gyro_b[2],
-				IMUout.acce_b[0], IMUout.acce_b[1], IMUout.acce_b[2],
-				INScal.ang[0], INScal.ang[1], INScal.ang[2],
-				INScal.vel[0], INScal.vel[1], INScal.vel[2],
-				INScal.pos[0], INScal.pos[1], INScal.pos[2],
-				phins.ang[0], phins.ang[1], phins.ang[2],
-				phins.vel[0], phins.vel[1], phins.vel[2],
-				phins.pos[2], phins.pos[0], phins.pos[1],
-				gps.pos[0], gps.pos[1], gps.pos[2],
-				0.0, 0.0, 0.0,
-				fosn.ang[0], fosn.ang[1], fosn.ang[2],
-				fosn.vel[0], fosn.vel[1], fosn.vel[2],
-				fosn.pos[0], fosn.pos[1], fosn.pos[2]);
+			if (TestModeNum == 1)//车载实验数据标准格式
+				/*1~5 帧号录数统计，转台帧号/多功能版帧号/备用，fosn时间,gps时间，phins时间
+				6~11  陀螺加表（陀螺单位为 度/S）
+				12~14 解算姿态
+				15~17 解算速度
+				18~20 解算位置
+				21~23 PHINS姿态
+				24~26 PHINS速度
+				27~29 PHINS位置
+				30~35 GPS位置，速度（没有）
+				36~38 FOSN姿态
+				39~41 FOSN速度
+				42~44 FOSN位置
+				|陀螺                 加表                |解算姿态            速度                  位置                |PS姿态               速度                位置                 |GPS位置              速度                |FOSN姿态            速度                 位置    */
+			{
+				if (PureINSModeNum == PURE_SINS_TRANSVERSE)
+				{
+					fprintf_s(fid_Cal, "%d,%d,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf\n",
+						fosn.recnum, ZT.cnt, fosn.time, gps.time, phins.utc,
+						IMUout.gyro_b[0], IMUout.gyro_b[1], IMUout.gyro_b[2],
+						IMUout.acce_b[0], IMUout.acce_b[1], IMUout.acce_b[2],
+						INScal.ang[0], INScal.ang[1], INScal.ang[2],
+						INScal.vel[0], INScal.vel[1], INScal.vel[2],
+						INScal.pos[0], INScal.pos[1], INScal.pos[2],
+						phins.ang[0], phins.ang[1], phins.ang[2],
+						phins.vel[0], phins.vel[1], phins.vel[2],
+						phins.pos[2], phins.pos[0], phins.pos[1],
+						gps.pos[0], gps.pos[1], gps.pos[2],
+						0.0, 0.0, 0.0,
+						fosn.ang[0], fosn.ang[1], fosn.ang[2],
+						fosn.vel[0], fosn.vel[1], fosn.vel[2],
+						fosn.pos[0], fosn.pos[1], fosn.pos[2],
+						inforS.att_angle_S[0], inforS.att_angle_S[1], inforS.att_angle_S[2],
+						inforS.vel_S[0], inforS.vel_S[1], inforS.vel_S[2],
+						inforS.lati_S, inforS.longi_S, inforS.high_S, 
+						inforS.att_angle[0], inforS.att_angle[1], inforS.att_angle[2],
+						inforS.vel_n[0], inforS.vel_n[1], inforS.vel_n[2],
+						inforS.lati, inforS.longi, inforS.high);
+				}
+				else
+				{
+					fprintf_s(fid_Cal, "%d,%d,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf\n",
+						fosn.recnum, ZT.cnt, fosn.time, gps.time, phins.utc,
+						IMUout.gyro_b[0], IMUout.gyro_b[1], IMUout.gyro_b[2],
+						IMUout.acce_b[0], IMUout.acce_b[1], IMUout.acce_b[2],
+						INScal.ang[0], INScal.ang[1], INScal.ang[2],
+						INScal.vel[0], INScal.vel[1], INScal.vel[2],
+						INScal.pos[0], INScal.pos[1], INScal.pos[2],
+						phins.ang[0], phins.ang[1], phins.ang[2],
+						phins.vel[0], phins.vel[1], phins.vel[2],
+						phins.pos[2], phins.pos[0], phins.pos[1],
+						gps.pos[0], gps.pos[1], gps.pos[2],
+						0.0, 0.0, 0.0,
+						fosn.ang[0], fosn.ang[1], fosn.ang[2],
+						fosn.vel[0], fosn.vel[1], fosn.vel[2],
+						fosn.pos[0], fosn.pos[1], fosn.pos[2]);
+				}
+			}
 #pragma endregion Datacz
 		if (TestModeNum == 2)//3号，3陀螺，3加表，3转台姿态，3FOSN姿态
 			fprintf_s(fid_Cal, "%d,%d,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf\n",
