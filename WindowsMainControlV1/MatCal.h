@@ -15,7 +15,7 @@ void masub(int n1, int n2, double *a, double *b, double *c);//masub 矩阵相减运算
 void avecmul(int n, double *a, double *b, double c);//矢量数乘运算 a(m,1) = b(m,1) .x c(1,1)
 void amamul(int n1, int n2, double *a, double *b, double c);// amamul 矩阵数乘运算 a(m,n) = b(m,n) .x c(1,1)
 void maturn(int n1, int n2, double *c, double *d);//矩阵转置运算 c(n,m) = d(m,n)'
-void swap(double *a, double *b);//交换两个数
+void jiaohuan(double *a, double *b);//交换两个数
 void mainv(int n, double *a);//mainv 矩阵求逆运算 a = inv(a)
 
 

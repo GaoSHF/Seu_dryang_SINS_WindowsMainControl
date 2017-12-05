@@ -373,6 +373,8 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnStartcard()
 			return;
 
 		UpdateData(true);
+		sysc.Fs = edit_data_f;
+		sysc.Ts = 1.0 / sysc.Fs;
 		str = _T("板卡接收停止");
 		h1->SetWindowText(str);
 		GetDlgItem(IDC_BTN_SAVEPATH)->EnableWindow(TRUE);
@@ -1007,7 +1009,7 @@ bool CWindowsMainControlV1Dlg::Init_Net(void)
 	SOCKADDR_IN addrRecSock;
 	addrRecSock.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
 	addrRecSock.sin_family = AF_INET;
-	addrRecSock.sin_port = htons(8110);
+	addrRecSock.sin_port = htons(8112);
 	int retval = bind(m_socketPHINSDataRec, (SOCKADDR*)& addrRecSock, sizeof(SOCKADDR));
 	if (SOCKET_ERROR == retval)
 	{
@@ -1198,9 +1200,9 @@ int CWindowsMainControlV1Dlg::GPSChannel()
 {
 	WORD rt = 0;
 	//	Protocol Mode
-	if (Sio_Rx_IsFrameOver(hCard, 1))
+	if (Sio_Rx_IsFrameOver(hCard, 3))
 	{
-		Sio_ReadFrame(hCard, 1, BufGPS, &rt);
+		Sio_ReadFrame(hCard, 3, BufGPS, &rt);
 		if (BufGPS[0] == 0xAA && BufGPS[1] == 0x44 && BufGPS[2] == 0x12 && BufGPS[4] == 0x2A)
 		{
 			int i;
@@ -1354,14 +1356,11 @@ void CWindowsMainControlV1Dlg::getfileData()
 			&fosn.time,
 			&IMUout.gyro_b[0], &IMUout.gyro_b[1], &IMUout.gyro_b[2],  //单位 °
 			&IMUout.acce_b[0], &IMUout.acce_b[1], &IMUout.acce_b[2],
-			&ZT.ang[0], &ZT.ang[1], &ZT.ang[2],
+			&phins.ang[0], &phins.ang[1], &phins.ang[2],
 			&phins.vel[0], &phins.vel[1], &phins.vel[2],
 			&phins.pos[0], &phins.pos[1], &phins.pos[2]);
-		ZT.ang[0] = ZT.ang[0]*R2D;
-		ZT.ang[1] = ZT.ang[1]*R2D;
-		ZT.ang[2] = ZT.ang[2]*R2D;		
 		memcpy(real_pos, phins.pos, sizeof(phins.pos));
-		memcpy(phins.ang, ZT.ang, sizeof(ZT.ang));
+		memcpy(ZT.ang, phins.ang, sizeof(ZT.ang));
 		real_pos[0] = real_pos[0] * D2R;
 		real_pos[1] = real_pos[1] * D2R;
 	}
@@ -1559,7 +1558,7 @@ void CWindowsMainControlV1Dlg::SaveData()
 				INScal.pos[0], INScal.pos[1], INScal.pos[2],
 				phins.ang[0], phins.ang[1], phins.ang[2],
 				phins.vel[0], phins.vel[1], phins.vel[2],
-				phins.pos[2], phins.pos[0], phins.pos[1],
+				phins.pos[0], phins.pos[1], phins.pos[2],
 				gps.pos[0], gps.pos[1], gps.pos[2],
 				0.0, 0.0, 0.0,
 				fosn.ang[0], fosn.ang[1], fosn.ang[2],
@@ -1683,8 +1682,8 @@ void CWindowsMainControlV1Dlg::DataTrans()
 		INScal.err_ang[0] = temp_fixanlge[0] * R2D - phins.ang[0];
 		INScal.err_ang[1] = temp_fixanlge[1] * R2D - phins.ang[1];
 		INScal.err_ang[2] = temp_fixanlge[2] * R2D - phins.ang[2];
-		INScal.err_pos[0] = infor.pos[0] - phins.pos[0];
-		INScal.err_pos[1] = infor.pos[1] - phins.pos[1];
+		INScal.err_pos[0] = (infor.pos[0] - phins.pos[0] * D2R)*RE;
+		INScal.err_pos[1] = (infor.pos[1] - phins.pos[1] * D2R)*RE;
 		INScal.err_pos[2] = sqrt(INScal.err_pos[0]*INScal.err_pos[0] + INScal.err_pos[1]*INScal.err_pos[1]);
 	}
 	if (6 == TestModeNum)
@@ -1884,7 +1883,7 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 				tempob[2] = gps.pos[2];
 				vecsub(3, tempob, infor.pos, tempob);
 				//输入的观测量已经是差值
-				navi_Kal_15_3(fkalman, tempob, YA_POS);
+				navi_Kal_15_3(nkalman, tempob, YA_POS);
 				sysc.state = _T("GPS位置组合");
 				break;
 			case NAVI_PHINS_POS:
@@ -1893,7 +1892,7 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 				tempob[2] = phins.pos[2];
 				vecsub(3, tempob, infor.pos, tempob);
 				//输入的观测量已经是差值
-				navi_Kal_15_3(fkalman, tempob, YA_POS);
+				navi_Kal_15_3(nkalman, tempob, YA_POS);
 				sysc.state = _T("PS位置组合");
 				break;
 
@@ -1906,14 +1905,14 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 
 				vecsub(2, tempob, infor.vel_n, tempob_v);
 				//输入的观测量已经是差值
-				navi_Kal_15_3(fkalman,tempob, YA_VELANDAZ);
+				navi_Kal_15_3(nkalman,tempob, YA_VELANDAZ);
 				sysc.state = _T("n系速度+航向组合");
 				break;
 			case NAVI_PHINS_VEL1:
 				avecmul(3, tempob_v, phins.vel, 1);//观测量的获得方式
 				vecsub(3, tempob, infor.vel_n, tempob_v);
 				//输入的观测量已经是差值
-				navi_Kal_15_3(fkalman,tempob, YA_VELANDAZ);
+				navi_Kal_15_3(nkalman,tempob, YA_VELANDAZ);
 				sysc.state = _T("PSn系速度组合");
 				break;
 			case NAVI_HAISHI_BASIC:
@@ -1965,7 +1964,8 @@ UINT CWindowsMainControlV1Dlg::CardRec(LPVOID pParam)
 			if (FOSNChannel() == 0)
 				continue;
 			if (TestModeNum != 1)ZTChannel();
-			if (Rec200times(count200)) gps.flag = GPSChannel();
+			if (Rec200times(count200)) 
+				gps.flag = GPSChannel();
 
 			if (is_startCal&&isStartCalOk)
 			{
@@ -2066,6 +2066,7 @@ UINT CWindowsMainControlV1Dlg::PHINSThread(LPVOID pParam)
 	SOCKET sock = ((SOCKETPARAM*)pParam)->sock;
 	HWND hwnd = ((SOCKETPARAM*)pParam)->hwnd;
 	delete pParam;
+	static bool firstps = true;
 	while (is_start_phins)
 	{
 		int retval = recvfrom(sock, m_Recv_PHINS_Buff, 1024, 0, (SOCKADDR*)&addrFrom, &len);
@@ -2125,7 +2126,21 @@ UINT CWindowsMainControlV1Dlg::PHINSThread(LPVOID pParam)
 			Ang2CH.Ch[0] = m_Recv_PHINS_Buff[31];
 			phins.ang[2] = -Ang2CH.Int * 180.0 / 32768.0;	//航向
 
-
+			//获得phins数据且解算初始化OK之后，通过phins赋一次姿态和位置初值
+			if (firstps == true)
+			{
+				if (isStartCalOk)
+				{
+					infor.pos[0] = phins.pos[0] * D2R;
+					infor.pos[1] = phins.pos[1] * D2R;
+					infor.pos[2] = initial_height;
+					avecmul(3, infor.att_angle, phins.ang, D2R);
+					ang2cnb(infor.cnb_mat, infor.att_angle);
+					cnb2q(infor.cnb_mat, infor.quart);
+					optq(infor.quart);
+					firstps = false;
+				}
+			}				
 		}
 	}
 

@@ -491,6 +491,9 @@ void fine_yucia(SKALMAN_15_3& temp_kal, double observer[3],char mode)
 	if (sysc.cnt_s == sysc.algn_time)
 	{
 		sysc.f_fine_over = TRUE;                        // ¾«¶Ô×¼½áÊø
+		//ÁãÆ«¹À¼Æ²¹³¥
+		memcpy(calipara.bias_acce, temp_kal.X_vector + 9, sizeof(calipara.bias_acce));
+	//	memcpy(calipara.bias_gyro, temp_kal.X_vector + 12, sizeof(calipara.bias_gyro));
 	}
 	if (sysc.cnt_s >= sysc.coarse_time&&sysc.cnt_s < sysc.algn_time)
 	{
@@ -545,6 +548,10 @@ void navi_Kal_15_3(SKALMAN_15_3& temp_kal, double observer[3], char mode)
 			maturn(3, 3, (double*)infor.cbn_mat, (double*)infor.cnb_mat);
 			cnb2ang(infor.cnb_mat, infor.att_angle);
 			cnb2q(infor.cnb_mat, infor.quart);
+			//ÁãÆ«¹À¼Æ²¹³¥
+		//	memcpy(calipara.bias_acce, temp_kal.X_vector + 9, sizeof(calipara.bias_acce));
+		//	memcpy(calipara.bias_gyro, temp_kal.X_vector + 12, sizeof(calipara.bias_gyro));
+		//	memset(temp_kal.X_vector, 0, sizeof(temp_kal.X_vector));
 			for (i = 0; i < 9; i++)
 				temp_kal.X_vector[i] = 0.0;
 			for (i = 0; i < 3; i++)

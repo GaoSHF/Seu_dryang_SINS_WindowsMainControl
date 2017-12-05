@@ -221,10 +221,9 @@ void maturn(int n1, int n2, double *c, double *d)
 *         b 浮点指针 表示输入向量(1,1)
 * @retval None
 */
-void swap(double *a, double *b)
+void jiaohuan(double *a, double *b)
 {
 	double c;
-
 	c = *a;
 	*a = *b;
 	*b = c;
@@ -239,7 +238,7 @@ void swap(double *a, double *b)
 void mainv(int n, double *a)
 {
 	int		i, j;
-	int		is[30], js[30];
+	int		is[30]={0}, js[30]={0};
 	int		f = 1, k;
 	double	fDet = 1.0;
 
@@ -265,13 +264,13 @@ void mainv(int n, double *a)
 		{
 			f = -f;
 			for (i = 0; i < n; i++)
-				swap((a + k*n + i), (a + is[k] * n + i));
+				jiaohuan((a + k*n + i), (a + is[k] * n + i));
 		}
 		if (js[k] != k)
 		{
 			f = -f;
 			for (i = 0; i < n; i++)
-				swap((a + i*n + k), (a + i*n + js[k]));
+				jiaohuan((a + i*n + k), (a + i*n + js[k]));
 		}
 
 		/* 计算行列值 */
@@ -313,12 +312,12 @@ void mainv(int n, double *a)
 		if (js[k] != k)
 		{
 			for (i = 0; i < n; i++)
-				swap((a + k*n + i), (a + js[k] * n + i));
+				jiaohuan((a + k*n + i), (a + js[k] * n + i));
 		}
 		if (is[k] != k)
 		{
 			for (i = 0; i < n; i++)
-				swap((a + i*n + k), (a + i*n + is[k]));
+				jiaohuan((a + i*n + k), (a + i*n + is[k]));
 		}
 	}
 	fDet *= f;
@@ -379,7 +378,7 @@ void bubblesort(double *a, int num)
 		{
 			if (*(a + j) > *(a + j + 1))
 			{
-				swap(a + j, a + j + 1);
+				jiaohuan(a + j, a + j + 1);
 				donothing = 0;
 				//	*(b + j)= *(b + i)+1;
 			}
