@@ -774,8 +774,8 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnCalibration()
 	nRes = cali.DoModal();
 	if (11 == nRes)//预设值1，车载，吴梅标定于2017年12月
 	{
-		calipara.Eg_ang[0] = 2.013e-4;//xy
-		calipara.Eg_ang[1] = -4.032e-6;//yx
+		calipara.Eg_ang[0] = 2.0317e-4;//xy
+		calipara.Eg_ang[1] = -4.0032e-6;//yx
 		calipara.Eg_ang[2] = -2.04252e-5;//yz
 		calipara.Eg_ang[3] = 8.4158e-5;//zy
 		calipara.Eg_ang[4] = 7.412e-4;//xz
@@ -788,16 +788,16 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnCalibration()
 		calipara.bias_gyro[2] = -2.4168e-9;
 		
 		calipara.Ea_ang[0] = 1.3127e-04;//xy
-		calipara.Ea_ang[1] = 6.3079e-06;//yx
-		calipara.Ea_ang[2] = 4.0829e-05;//yz
+		calipara.Ea_ang[1] = 6.30997e-06;//yx
+		calipara.Ea_ang[2] = 4.0842e-05;//yz
 		calipara.Ea_ang[3] = 9.1177e-05;//zy
-		calipara.Ea_ang[4] = 7.3794e-04;//xz
-		calipara.Ea_ang[5] = -4.9893e-04;//zx
+		calipara.Ea_ang[4] = 7.3808e-04;//xz
+		calipara.Ea_ang[5] = -4.9906e-04;//zx
 		calipara.Ca[0] = 1.000194;
 		calipara.Ca[1] = 1.00033;
 		calipara.Ca[2] = 1.000253;
-		calipara.bias_acce[0] = -0.01108;
-		calipara.bias_acce[1] = -0.006;
+		calipara.bias_acce[0] = -0.01076;
+		calipara.bias_acce[1] = -0.005657;
 		calipara.bias_acce[2] = -0.006042;
 		calipara.Eang2mat();
 		if (!is_UpdateData)
