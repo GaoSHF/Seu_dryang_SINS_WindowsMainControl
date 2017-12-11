@@ -147,8 +147,8 @@ void sinscal_rv(double quart_del)
 	fw[2] = 2 * WIE * sin(infor.pos[0]) + dlongi * sin(infor.pos[0]);
 
 	/* ¹ßÐÔµ¼º½Ê½8.1.4 */
-	infor.dvel_n[0] = an[0] + fw[2] * infor.vel_n[1];// -fw[1] * infor.vel_n[2];
-	infor.dvel_n[1] = an[1] - fw[2] * infor.vel_n[0];// +fw[0] * infor.vel_n[2];
+	infor.dvel_n[0] = an[0] + fw[2] * infor.vel_n[1] -fw[1] * infor.vel_n[2];
+	infor.dvel_n[1] = an[1] - fw[2] * infor.vel_n[0] +fw[0] * infor.vel_n[2];
 	infor.dvel_n[2] = an[2] + fw[1] * infor.vel_n[0] - fw[0] * infor.vel_n[1] - g;   //+
 	memcpy(infor.old_v, infor.vel_n, sizeof(infor.vel_n));
 	infor.vel_n[0] += infor.dvel_n[0] * quart_del;

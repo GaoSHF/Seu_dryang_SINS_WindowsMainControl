@@ -182,7 +182,7 @@ void F_matrix_15(SYS_ELEMENT temp_infor,double F_15[15][15])
 
 	F_15[0][0] = (temp_infor.vel_n[1] * tan(temp_infor.pos[0]) - temp_infor.vel_n[2]) / (RNh + temp_infor.pos[2]);
 	F_15[0][1] = w1[2];
-	F_15[0][2] = 0;// -w1[1];
+	F_15[0][2] = -w1[1];
 	F_15[0][4] = -temp_infor.acce_n[2];
 	F_15[0][5] = temp_infor.acce_n[1];
 	F_15[0][6] = w0[0];
@@ -193,7 +193,7 @@ void F_matrix_15(SYS_ELEMENT temp_infor,double F_15[15][15])
 
 	F_15[1][0] = -(2 * w1[2] - 2 * WIE * sin(temp_infor.pos[0]));//-w1[2];  这项好像错了
 	F_15[1][1] = -temp_infor.vel_n[2] / (RMh + temp_infor.pos[2]);
-	F_15[1][2] = 0;// -temp_infor.vel_n[1] / (RMh + temp_infor.pos[2]);
+	F_15[1][2] = -temp_infor.vel_n[1] / (RMh + temp_infor.pos[2]);
 	F_15[1][3] = temp_infor.acce_n[2];
 	F_15[1][5] = -temp_infor.acce_n[0];
 	F_15[1][6] = -w0[1];
