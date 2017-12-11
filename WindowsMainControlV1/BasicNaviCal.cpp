@@ -308,13 +308,13 @@ CALIPMT::CALIPMT()
 void CALIPMT::Eang2mat()
 {
 	int i, j;
-	Eg_mat_inv[0][1] = Eg_ang[0]; Eg_mat_inv[1][0] = -Eg_ang[1];
-	Eg_mat_inv[0][2] = -Eg_ang[4]; Eg_mat_inv[2][0] = Eg_ang[5];
-	Eg_mat_inv[1][2] = Eg_ang[2]; Eg_mat_inv[2][1] = -Eg_ang[3];
+	Eg_mat_inv[0][1] = Eg_ang[0]; Eg_mat_inv[1][0] = Eg_ang[1];
+	Eg_mat_inv[0][2] = Eg_ang[4]; Eg_mat_inv[2][0] = Eg_ang[5];
+	Eg_mat_inv[1][2] = Eg_ang[2]; Eg_mat_inv[2][1] = Eg_ang[3];
 
-	Ea_mat_inv[0][1] = Ea_ang[0]; Ea_mat_inv[1][0] = -Ea_ang[1];
-	Ea_mat_inv[0][2] = -Ea_ang[4]; Ea_mat_inv[2][0] = Ea_ang[5];
-	Ea_mat_inv[1][2] = Ea_ang[2]; Ea_mat_inv[2][1] = -Ea_ang[3];
+	Ea_mat_inv[0][1] = Ea_ang[0]; Ea_mat_inv[1][0] = Ea_ang[1];
+	Ea_mat_inv[0][2] = Ea_ang[4]; Ea_mat_inv[2][0] = Ea_ang[5];
+	Ea_mat_inv[1][2] = Ea_ang[2]; Ea_mat_inv[2][1] = Ea_ang[3];
 	for (i = 0; i < 3; i++)
 	{
 		for (j = 0; j < 3; j++)

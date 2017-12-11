@@ -23,25 +23,12 @@ FILTER kal;//设备程序用的kalman滤波结构体对象
 //基础导航参数初始化
 void init_basicnavi(void)//infor，out_nav，SINSpara，IMUout
 {	
-	int i;
-
 	memset(IMUout.gyro_b,0,sizeof(IMUout.gyro_b));
 	memset(IMUout.acce_b,0,sizeof(IMUout.acce_b));
-	
-	/* init sins parameters */
-	/*纵横航*/
-	infor.att_angle[0]=(0) *D2R;	
-	infor.att_angle[1]=(0) *D2R;   
-	infor.att_angle[2]=INIT_A3 *D2R;	 
-
-	/* 速度加速度 顺序为东 北 天 */
-	infor.vel_n[0] = 0;   
-	infor.vel_n[1] = 0;  
-	infor.vel_n[2] = 0;   
-	infor.dvel_n[0] = 0;   
-	infor.dvel_n[1] = 0;   
-	infor.dvel_n[2] = 0;  
-		
+	memset(infor.att_angle, 0, sizeof(infor.att_angle));
+	memset(infor.vel_n, 0, sizeof(infor.vel_n));
+	memset(infor.dvel_n, 0, sizeof(infor.dvel_n));
+	memset(infor.old_v, 0, sizeof(infor.old_v));
 	SINSpara.gn[0] = 0.0;
 	SINSpara.gn[1] = 0.0;
 	SINSpara.gn[2] = -latitog(infor.pos[0]);			 // 导航系下的重力加速度
@@ -55,10 +42,8 @@ void init_basicnavi(void)//infor，out_nav，SINSpara，IMUout
 	memset(infor.gyro_bias_esti, 0, sizeof(infor.gyro_bias_esti));
 	memset(infor.acce_bias_esti, 0, sizeof(infor.acce_bias_esti));
 	memset(infor.rvib, 0, sizeof(infor.rvib));
-	for(i = 0; i < 4; i++)
-	{
-		infor.quart[i] = 0.;
-	}
+
+	memset(infor.quart, 0, sizeof(infor.quart));
 	infor.quart[0] = 1.;
 
 	//设备有关
@@ -275,7 +260,7 @@ void Kal_Init_P_15(SKALMAN_15_3& temp_kal,char mode)              //20171108
 
 	memset(temp_kal.Q_state, 0, sizeof(temp_kal.Q_state));
 
-	temp_kal.Q_state[0][0] = powl(50 * ug, 2);
+	temp_kal.Q_state[0][0] = powl(500 * ug, 2);
 	temp_kal.Q_state[1][1] = temp_kal.Q_state[0][0];
 	temp_kal.Q_state[2][2] = temp_kal.Q_state[0][0];
 
