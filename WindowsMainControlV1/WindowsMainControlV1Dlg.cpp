@@ -1276,13 +1276,15 @@ void CWindowsMainControlV1Dlg::getfileData()
 			&phins.vel[0], &phins.vel[1], &phins.vel[2],
 			&phins.pos[2], &phins.pos[0], &phins.pos[1],
 			&gps.pos[0], &gps.pos[1], &gps.pos[2],
-			0.0, 0.0, 0.0,
+			&gps.vel[0], &gps.vel[1], &gps.vel[2],
 			&fosn.ang[0], &fosn.ang[1], &fosn.ang[2],
 			&fosn.vel[0], &fosn.vel[1], &fosn.vel[2],
 			&fosn.pos[0], &fosn.pos[1], &fosn.pos[2]);
 		memcpy(real_pos, phins.pos, sizeof(phins.pos));
+		memcpy(ZT.ang, phins.ang, sizeof(phins.ang));
 		real_pos[0] = real_pos[0] * D2R;
 		real_pos[1] = real_pos[1] * D2R;
+
 	}
 	if (RS_para.file_mode == 2)//对应转台实验模式（不含kalman估计的）
 	{
@@ -1390,6 +1392,18 @@ void CWindowsMainControlV1Dlg::getfileData()
 	{
 		if (RS_para.ReadInitPos == 1)//读取初始位置
 		{
+			if (RS_para.file_mode == 0)
+			{
+				infor.pos[0] = phins.pos[0] * D2R;
+				infor.pos[1] = phins.pos[1] * D2R;
+				infor.pos[2] = phins.pos[2];
+				initial_latitude = infor.pos[0] * R2D;
+				initial_longitude = infor.pos[1] * R2D;
+				initial_height = infor.pos[2];
+				infor.vel_n[0] = phins.vel[0];       //20171129
+				infor.vel_n[1] = phins.vel[1];
+				infor.vel_n[2] = phins.vel[2];
+			}
 			if (RS_para.file_mode == 2)
 			{
 				memcpy(infor.initial_pos, INScal.pos, sizeof(INScal.pos));
@@ -1814,8 +1828,8 @@ void CWindowsMainControlV1Dlg::FineThread()
 			case FINE_Yucia:
 				switch (TestModeNum)
 				{
-				case 1:avecmul(3, temp_pos, infor.initial_pos, 1); break;
-				case 2:
+				case 0:avecmul(3, temp_pos, infor.initial_pos, 1); break;
+				case 1:
 					avecmul(3, temp_pos, phins.pos, 1); 
 					temp_pos[0] *= D2R;
 					temp_pos[1] *= D2R;
@@ -1906,7 +1920,7 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 			}
 			switch (NaviModeNum)
 			{
-			case NAVI_SINS_UNDUMP:sysc.state = _T("纯惯性");
+			case NAVI_SINS_UNDUMP:sysc.state = _T("纯惯性"); break;
 			case NAVI_SG:
 				tempob[0] = gps.pos[0] * D2R;
 				tempob[1] = gps.pos[1] * D2R;
@@ -1929,7 +1943,10 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 			case NAVI_VELANDAZ:
 				avecmul(3, tempob_att, phins.ang, D2R);//观测量的获得方式
 				avecmul(3, tempob_v, phins.vel , 1);
-
+				if (tempob_att[2] > PAI)
+					tempob_att[2] -= 2 * PAI;
+				if (tempob_att[2] < -PAI)
+					tempob_att[2] += 2 * PAI;
 				vecsub(3, tempob, infor.att_angle, tempob_att);				
 				DeltaAtt2Phi(infor, tempob, tempob);//姿态误差角到失准角处理
 
