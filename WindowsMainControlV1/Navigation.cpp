@@ -106,7 +106,7 @@ void sinscal_rv(double quart_del)
 	if (1 == sysc.data_cnt)
 		memcpy(rvib_old, infor.rvib, sizeof(infor.rvib));
 	cvecmul(rvib_bu, rvib_old, infor.rvib);
-	avecmul(3, rvib_bu, rvib_bu, 0.083333);
+	avecmul(3, rvib_bu, rvib_bu, 1.0/12.0);
 	vecadd(3, rvib_bu, infor.rvib, rvib_bu);
 	rv2q(tempq, rvib_bu);
 	qmul(infor.quart, infor.quart, tempq);
@@ -128,7 +128,7 @@ void sinscal_rv(double quart_del)
 	cvecmul(vscull, dsita_old, dsb);
 	cvecmul(tempscull, dsita, dsb_old);
 	vecadd(3, tempscull, vscull, tempscull);
-	avecmul(3, vscull, tempscull, 0.083333);//不能用1/12。算出来是0
+	avecmul(3, vscull, tempscull, 1.0 / 12.0);
 
 	vecadd(3, df, vscull, vrot);
 	avecmul(3, df, df, 1/ quart_del);
@@ -147,10 +147,10 @@ void sinscal_rv(double quart_del)
 	fw[2] = 2 * WIE * sin(infor.pos[0]) + dlongi * sin(infor.pos[0]);
 
 	/* 惯性导航式8.1.4 */
-	infor.dvel_n[0] = an[0] + fw[2] * infor.vel_n[1] - fw[1] * infor.vel_n[2];
-	infor.dvel_n[1] = an[1] - fw[2] * infor.vel_n[0] + fw[0] * infor.vel_n[2];
+	infor.dvel_n[0] = an[0] + fw[2] * infor.vel_n[1];// -fw[1] * infor.vel_n[2];
+	infor.dvel_n[1] = an[1] - fw[2] * infor.vel_n[0];// +fw[0] * infor.vel_n[2];
 	infor.dvel_n[2] = an[2] + fw[1] * infor.vel_n[0] - fw[0] * infor.vel_n[1] - g;   //+
-
+	memcpy(infor.old_v, infor.vel_n, sizeof(infor.vel_n));
 	infor.vel_n[0] += infor.dvel_n[0] * quart_del;
 	infor.vel_n[1] += infor.dvel_n[1] * quart_del;
 	infor.vel_n[2] += infor.dvel_n[2] * quart_del;
@@ -159,6 +159,8 @@ void sinscal_rv(double quart_del)
 	infor.pos[0] += dlati * quart_del;
 	infor.pos[1] += dlongi * quart_del;
 	infor.pos[2] += infor.vel_n[2] * quart_del;      //+
+
+	vecmul(3, 3, infor.acce_n, (double*)infor.cbn_mat, infor.acce_b);
 }
 
 #pragma region HAISHI

@@ -54,7 +54,7 @@ void ReadSimuDlg::init_RScombo()
 			MessageBox(_T("build baud error!"));
 		}
 	}
-	RS_FileFormat.SetCurSel(7);
+	RS_FileFormat.SetCurSel(0);
 	RS_Delay5ms.SetCheck(0);
 	RS_ReadInitPos.SetCheck(1);
 	RS_ReadInitAtt.SetCheck(1);

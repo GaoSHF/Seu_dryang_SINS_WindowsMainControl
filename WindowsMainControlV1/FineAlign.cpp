@@ -182,7 +182,7 @@ void F_matrix_15(SYS_ELEMENT temp_infor,double F_15[15][15])
 
 	F_15[0][0] = (temp_infor.vel_n[1] * tan(temp_infor.pos[0]) - temp_infor.vel_n[2]) / (RNh + temp_infor.pos[2]);
 	F_15[0][1] = w1[2];
-	F_15[0][2] = -w1[1];
+	F_15[0][2] = 0;// -w1[1];
 	F_15[0][4] = -temp_infor.acce_n[2];
 	F_15[0][5] = temp_infor.acce_n[1];
 	F_15[0][6] = w0[0];
@@ -191,9 +191,9 @@ void F_matrix_15(SYS_ELEMENT temp_infor,double F_15[15][15])
 	F_15[0][10] = temp_infor.cbn_mat[0][1];
 	F_15[0][11] = temp_infor.cbn_mat[0][2];
 
-	F_15[1][0] = -w1[2];
+	F_15[1][0] = -(2 * w1[2] - 2 * WIE * sin(temp_infor.pos[0]));//-w1[2];  这项好像错了
 	F_15[1][1] = -temp_infor.vel_n[2] / (RMh + temp_infor.pos[2]);
-	F_15[1][2] = -temp_infor.vel_n[1] / (RMh + temp_infor.pos[2]);
+	F_15[1][2] = 0;// -temp_infor.vel_n[1] / (RMh + temp_infor.pos[2]);
 	F_15[1][3] = temp_infor.acce_n[2];
 	F_15[1][5] = -temp_infor.acce_n[0];
 	F_15[1][6] = -w0[1];
@@ -488,12 +488,14 @@ void fine_yucia(SKALMAN_15_3& temp_kal, double observer[3],char mode)
 {
 	int i = 0;
 	double F_15[15][15] = { 0 };
+	double tempq[4] = { 0 }, tempphi[3] = { 0 };
+	double temp_bias[3];
 	if (sysc.cnt_s == sysc.algn_time)
 	{
 		sysc.f_fine_over = TRUE;                        // 精对准结束
-		//零偏估计补偿
-		memcpy(calipara.bias_acce, temp_kal.X_vector + 9, sizeof(calipara.bias_acce));
-	//	memcpy(calipara.bias_gyro, temp_kal.X_vector + 12, sizeof(calipara.bias_gyro));
+		//零偏估计补偿//直接写入注释了此处
+	//	memcpy(temp_bias, temp_kal.X_vector + 9, sizeof(temp_bias));
+	//	vecadd(3, calipara.bias_acce, temp_bias, calipara.bias_acce);//增量计算	
 	}
 	if (sysc.cnt_s >= sysc.coarse_time&&sysc.cnt_s < sysc.algn_time)
 	{
@@ -501,19 +503,20 @@ void fine_yucia(SKALMAN_15_3& temp_kal, double observer[3],char mode)
 		Kal_forecast_15(temp_kal,sysc.Ts, F_15);                   //20171115   15维一步预测通用算法 适用于所有 SKALMAN_15_3结构体
 		if (1 == sysc.data_cnt%(sysc.Fs/ sysc.Kal_fr))
 		{		
-
-			vecsub(3, temp_kal.Mea_vector, infor.pos, observer);
+			if(mode==YA_POS)
+				vecsub(3, temp_kal.Mea_vector, infor.pos, observer);
+			if(mode==YA_VEL)
+				vecsub(3, temp_kal.Mea_vector, infor.vel_n, observer);
 			Kal_update_15_3(temp_kal, sysc.Kal_fr);
 			if (sysc.cnt_s >= sysc.coarse_time + 20)//20s之后开始校正
 			{
 				vecsub(3, infor.vel_n, infor.vel_n, temp_kal.X_vector);
 				vecsub(3, infor.pos, infor.pos, temp_kal.X_vector+6);
-				double cnn[3][3] = { 0.0 };
-				X2cnn(cnn, temp_kal.X_vector + 3);
-				mamul(3, 3, 3, (double *)infor.cnb_mat, (double *)infor.cnb_mat, (double *)cnn);
-				maturn(3, 3, (double*)infor.cbn_mat, (double*)infor.cnb_mat);
+				memcpy(tempphi, temp_kal.X_vector + 3, sizeof(tempphi));
+				rv2q(tempq, tempphi);
+				qmul(infor.quart, tempq, infor.quart);
+				q2cnb(infor.cnb_mat, infor.quart);
 				cnb2ang(infor.cnb_mat, infor.att_angle);
-				cnb2q(infor.cnb_mat, infor.quart);
 				for ( i = 0; i < 9; i++)
 					temp_kal.X_vector[i] = 0.0;
 				for (i = 0; i < 3; i++)
@@ -531,7 +534,7 @@ void navi_Kal_15_3(SKALMAN_15_3& temp_kal, double observer[3], char mode)
 {
 	int i = 0;
 	double F_15[15][15] = { 0 };
-
+	double tempq[4] = { 0 }, tempphi[3] = { 0 };
 	F_matrix_15(infor, F_15);                       //20171115   通过当前pureins结构体参数计算15维F阵给F_15
 	Kal_forecast_15(temp_kal, sysc.Ts, F_15);                   //20171115   15维一步预测通用算法 适用于所有 SKALMAN_15_3结构体
 	if (0 == sysc.data_cnt % (sysc.Fs / sysc.Kal_fr))
@@ -542,16 +545,11 @@ void navi_Kal_15_3(SKALMAN_15_3& temp_kal, double observer[3], char mode)
 		{
 			vecsub(3, infor.vel_n, infor.vel_n, temp_kal.X_vector);
 			vecsub(3, infor.pos, infor.pos, temp_kal.X_vector + 6);
-			double cnn[3][3] = { 0.0 };
-			X2cnn(cnn, temp_kal.X_vector + 3);
-			mamul(3, 3, 3, (double *)infor.cnb_mat, (double *)infor.cnb_mat, (double *)cnn);
-			maturn(3, 3, (double*)infor.cbn_mat, (double*)infor.cnb_mat);
+			memcpy(tempphi, temp_kal.X_vector+3, sizeof(tempphi));
+			rv2q(tempq, tempphi);
+			qmul(infor.quart, tempq, infor.quart);
+			q2cnb(infor.cnb_mat, infor.quart);
 			cnb2ang(infor.cnb_mat, infor.att_angle);
-			cnb2q(infor.cnb_mat, infor.quart);
-			//零偏估计补偿
-		//	memcpy(calipara.bias_acce, temp_kal.X_vector + 9, sizeof(calipara.bias_acce));
-		//	memcpy(calipara.bias_gyro, temp_kal.X_vector + 12, sizeof(calipara.bias_gyro));
-		//	memset(temp_kal.X_vector, 0, sizeof(temp_kal.X_vector));
 			for (i = 0; i < 9; i++)
 				temp_kal.X_vector[i] = 0.0;
 			for (i = 0; i < 3; i++)

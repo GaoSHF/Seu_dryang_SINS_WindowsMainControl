@@ -31,7 +31,9 @@
 
 /* 精对准模式 */
 #define    FINE_CMPS    1                            // 罗经法静基座
+#define    FINE_0su     2                            //零速修正
 #define    FINE_Yucia   3                            // 姚逸卿完美对准
+                           
 #define    FINE_ADRC    5                            // ADRC
 
 #define    YA_POS       1							//基于Yucia算法的15/3 组合系统位置组合
@@ -204,6 +206,7 @@ public:
 	double pos[3];
 	float err_ang[3];
 	float err_pos[3];
+	float err_vel[3];
 	INSCAL()
 	{
 		memset(vel, 0, sizeof(vel));
@@ -211,6 +214,7 @@ public:
 		memset(pos, 0, sizeof(ang));
 		memset(err_ang, 0, sizeof(err_ang));
 		memset(err_pos, 0, sizeof(err_pos));
+		memset(err_vel, 0, sizeof(err_vel));
 	}
 };
 //转台姿态

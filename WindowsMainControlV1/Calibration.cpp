@@ -96,7 +96,15 @@ void Calibration::DoDataExchange(CDataExchange* pDX)
 
 
 BEGIN_MESSAGE_MAP(Calibration, CDialogEx)
+	ON_BN_CLICKED(IDC_BTN_LOAD, &Calibration::OnBnClickedBtnLoad)
 END_MESSAGE_MAP()
 
 
 // Calibration 消息处理程序
+
+
+void Calibration::OnBnClickedBtnLoad()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	EndDialog(11);
+}
