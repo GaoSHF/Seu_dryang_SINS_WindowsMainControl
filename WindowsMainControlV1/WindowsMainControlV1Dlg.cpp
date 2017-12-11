@@ -774,12 +774,12 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnCalibration()
 	nRes = cali.DoModal();
 	if (11 == nRes)//预设值1，车载，吴梅标定于2017年12月
 	{
-		calipara.Eg_ang[0] = 2.013e-4;//xy
-		calipara.Eg_ang[1] = -4.032e-6;//yx
+		calipara.Eg_ang[0] = 2.0317e-4;//xy
+		calipara.Eg_ang[1] = -4.0032e-6;//yx
 		calipara.Eg_ang[2] = -2.04252e-5;//yz
 		calipara.Eg_ang[3] = 8.4158e-5;//zy
 		calipara.Eg_ang[4] = 7.412e-4;//xz
-		calipara.Eg_ang[5] = -5.80456e-5;//zx
+		calipara.Eg_ang[5] = -5.80456e-4;//zx
 		calipara.Cg[0] = 1.000399;
 		calipara.Cg[1] = 1.0004312;
 		calipara.Cg[2] = 1.00028645;
