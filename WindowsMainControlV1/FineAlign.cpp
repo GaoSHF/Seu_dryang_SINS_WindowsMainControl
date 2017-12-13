@@ -501,7 +501,7 @@ void fine_yucia(SKALMAN_15_3& temp_kal, double observer[3],char mode)
 	{
 		F_matrix_15(infor,F_15);                       //20171115   通过当前pureins结构体参数计算15维F阵给F_15
 		Kal_forecast_15(temp_kal,sysc.Ts, F_15);                   //20171115   15维一步预测通用算法 适用于所有 SKALMAN_15_3结构体
-		if (1 == sysc.data_cnt%(sysc.Fs/ sysc.Kal_fr))
+		if (0 == sysc.data_cnt%(sysc.Fs/ sysc.Kal_fr)) //1    //20171212
 		{		
 			if(mode==YA_POS)
 				vecsub(3, temp_kal.Mea_vector, infor.pos, observer);

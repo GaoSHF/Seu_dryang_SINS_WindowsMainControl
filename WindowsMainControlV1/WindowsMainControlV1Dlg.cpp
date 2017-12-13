@@ -787,12 +787,18 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnCalibration()
 		calipara.bias_gyro[1] = -7.373e-8;
 		calipara.bias_gyro[2] = -2.4168e-9;
 		
+		//calipara.Ea_ang[0] = 1.3127e-04;//xy
+		//calipara.Ea_ang[1] = 6.30997e-06;//yx
+		//calipara.Ea_ang[2] = 4.0842e-05;//yz
+		//calipara.Ea_ang[3] = 9.1177e-05;//zy
+		//calipara.Ea_ang[4] = 7.3808e-04;//xz
+		//calipara.Ea_ang[5] = -4.9906e-04;//zx
 		calipara.Ea_ang[0] = 1.3127e-04;//xy
-		calipara.Ea_ang[1] = 6.30997e-06;//yx
-		calipara.Ea_ang[2] = 4.0842e-05;//yz
+		calipara.Ea_ang[1] = 6.3079e-06;//yx
+		calipara.Ea_ang[2] = 4.0829e-05;//yz
 		calipara.Ea_ang[3] = 9.1177e-05;//zy
-		calipara.Ea_ang[4] = 7.3808e-04;//xz
-		calipara.Ea_ang[5] = -4.9906e-04;//zx
+		calipara.Ea_ang[4] = 7.3794e-04;//xz
+		calipara.Ea_ang[5] = -4.9893e-04;//zx
 		calipara.Ca[0] = 1.000194;
 		calipara.Ca[1] = 1.00033;
 		calipara.Ca[2] = 1.000253;
@@ -1610,7 +1616,7 @@ void CWindowsMainControlV1Dlg::SaveData()
 						INScal.pos[0], INScal.pos[1], INScal.pos[2],
 						phins.ang[0], phins.ang[1], phins.ang[2],
 						phins.vel[0], phins.vel[1], phins.vel[2],
-						phins.pos[0], phins.pos[0], phins.pos[2],
+						phins.pos[0], phins.pos[1], phins.pos[2],          
 						gps.pos[0], gps.pos[1], gps.pos[2],
 						0.0, 0.0, 0.0,
 						fosn.ang[0], fosn.ang[1], fosn.ang[2],
@@ -1634,7 +1640,7 @@ void CWindowsMainControlV1Dlg::SaveData()
 						INScal.pos[0], INScal.pos[1], INScal.pos[2],
 						phins.ang[0], phins.ang[1], phins.ang[2],
 						phins.vel[0], phins.vel[1], phins.vel[2],
-						phins.pos[0], phins.pos[0], phins.pos[2],
+						phins.pos[0], phins.pos[1], phins.pos[2],
 						gps.pos[0], gps.pos[1], gps.pos[2],
 						0.0, 0.0, 0.0,
 						fosn.ang[0], fosn.ang[1], fosn.ang[2],
@@ -1678,6 +1684,32 @@ void CWindowsMainControlV1Dlg::SaveData()
 				fflush(fid_Cal);
 				return;
 			}
+			if (PureINSModeNum == PURE_SINS_TRANSVERSE)
+			{
+				fprintf_s(fid_Cal, "%d,%d,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf\n",
+					fosn.recnum, ZT.cnt, fosn.time, gps.time, phins.utc,
+					IMUout.gyro_b[0], IMUout.gyro_b[1], IMUout.gyro_b[2],
+					IMUout.acce_b[0], IMUout.acce_b[1], IMUout.acce_b[2],
+					INScal.ang[0], INScal.ang[1], INScal.ang[2], //12-14
+					INScal.vel[0], INScal.vel[1], INScal.vel[2],
+					INScal.pos[0], INScal.pos[1], INScal.pos[2],
+					phins.ang[0], phins.ang[1], phins.ang[2],
+					phins.vel[0], phins.vel[1], phins.vel[2],
+					phins.pos[0], phins.pos[1], phins.pos[2],
+					gps.pos[0], gps.pos[1], gps.pos[2],
+					0.0, 0.0, 0.0,
+					fosn.ang[0], fosn.ang[1], fosn.ang[2],//36
+					fosn.vel[0], fosn.vel[1], fosn.vel[2],
+					fosn.pos[0], fosn.pos[1], fosn.pos[2],//42-44
+					inforS.att_angle_S[0], inforS.att_angle_S[1], inforS.att_angle_S[2], //45-47
+					inforS.vel_S[0], inforS.vel_S[1], inforS.vel_S[2],
+					inforS.lati_S, inforS.longi_S, inforS.high_S,
+					inforS.att_angle[0], inforS.att_angle[1], inforS.att_angle[2],
+					inforS.vel_n[0], inforS.vel_n[1], inforS.vel_n[2],
+					inforS.lati, inforS.longi, inforS.high);
+				fflush(fid_Cal);
+				return;
+			}
 			if (FineModeNum == FINE_Yucia)
 			{			
 				fprintf_s(fid_Cal, "%lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf\n",
@@ -1692,22 +1724,7 @@ void CWindowsMainControlV1Dlg::SaveData()
 					fkalman.X_vector[12], fkalman.X_vector[13], fkalman.X_vector[14]);
 				fflush(fid_Cal);
 				return;
-			}
-			if (PureINSModeNum == PURE_SINS_TRANSVERSE)
-			{
-				fprintf_s(fid_Cal, "%lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf\n",
-					fosn.time,
-					IMUout.gyro_b[0], IMUout.gyro_b[1], IMUout.gyro_b[2],
-					IMUout.acce_b[0], IMUout.acce_b[1], IMUout.acce_b[2],
-					inforS.att_angle[0], inforS.att_angle[1], inforS.att_angle[2],
-					inforS.vel_n[0], inforS.vel_n[1], inforS.vel_n[2],
-					inforS.lati, inforS.longi, inforS.high,
-					inforS.att_angle_S[0], inforS.att_angle_S[1], inforS.att_angle_S[2],
-					inforS.vel_S[0], inforS.vel_S[1], inforS.vel_S[2],
-					inforS.lati_S, inforS.longi_S, inforS.high_S);
-				fflush(fid_Cal);
-				return;
-			}				
+			}	
 			if (NaviModeNum == NAVI_HAISHI_BASIC || NaviModeNum == NAVI_HAISHI_JZ)
 			{          //                               |                    |                    |                    |                    |                    |                    |                    |
 				fprintf_s(fid_Cal, "%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf\n",
@@ -1865,7 +1882,7 @@ void CWindowsMainControlV1Dlg::FineThread()
 			case PURE_SINS_UNDUMP:sinscal_zundamp(sysc.Ts); break;
 			case PURE_SINS_RV:sinscal_rv(sysc.Ts);break;
 			case PURE_SINS_TRANSVERSE:
-				sinscal_zundamp(sysc.Ts);
+/*				sinscal_zundamp(sysc.Ts);
 				for (int i = 0; i<3; i++)
 				{
 					gyro[0][i] = infor.gyro_old[i];
@@ -1874,7 +1891,8 @@ void CWindowsMainControlV1Dlg::FineThread()
 				for (int i = 0; i<3; i++) inforS.acce_b[i] = infor.acce_b[i];
 				sinscal_TRANSVERSE(inforS, sysc.Ts, gyro);
 				sysc.state = _T("横向纯惯性");
-				break;	
+				break;*/	
+				sinscal_zundamp(sysc.Ts); break;
 			default:break;
 			}
 			switch (FineModeNum)
@@ -1883,19 +1901,11 @@ void CWindowsMainControlV1Dlg::FineThread()
 			case FINE_Yucia:
 				switch (TestModeNum)
 				{
-<<<<<<< HEAD
-				case 0:avecmul(3, temp_pos, infor.initial_pos, 1); break;
-				case 1:
-					avecmul(3, temp_pos, phins.pos, 1); 
-					temp_pos[0] *= D2R;
-					temp_pos[1] *= D2R;
-=======
 				case 0:avecmul(3, temp_ob, infor.initial_pos, 1); break;
 				case 1:
 					avecmul(3, temp_ob, phins.pos, 1);
 					temp_ob[0] *= D2R;
 					temp_ob[1] *= D2R;
->>>>>>> origin/Dr_yang
 					break;
 				case 6:
 					avecmul(3, temp_ob, phins.pos, 1);
@@ -1936,8 +1946,8 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 	double tempob_att[3] = { 0 };//姿态观测量
 	double gyro[2][3] = { 0 };
 	double cnb_phins[3][3] = { 0 };//用来存放phins的Cnb,INS/DVL组合用
-	double fix_err[3] = {0.0153*D2R,-0.1891*D2R,-0.1724*D2R}, Cpb[3][3] = { 0 };
-	double delta_v[3]= { 0 };
+	double fix_err[3] = {0.0*D2R,0*D2R,0*D2R}, Cpb[3][3] = { 0 };
+	double delta_v[3]= {0};
 	ang2cnb(Cpb, fix_err);   //p（phins系）为下标
 
 	if (!sysc.f_navi_over&&sysc.f_coarse_over&&sysc.f_fine_over)
@@ -1971,16 +1981,15 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 			case PURE_SINS_RV:
 				sinscal_rv(sysc.Ts);
 				break;
-			case PURE_SINS_TRANSVERSE:
-				
-				sinscal_zundamp(sysc.Ts);
+			case PURE_SINS_TRANSVERSE:				
 				for (int i = 0; i<3; i++)
 				{
 					gyro[0][i] = infor.gyro_old[i];
 					gyro[1][i] = infor.gyro_wib_b[i];
 				}
 				for (int i = 0; i<3; i++) inforS.acce_b[i] = infor.acce_b[i];
-				sinscal_TRANSVERSE(inforS, sysc.Ts, gyro);
+				sinscal_TRANSVERSE(inforS, sysc.Ts, gyro); //20171213 需要先解算横向，再解算传统算法，否则后者影响前者初值。
+				sinscal_zundamp(sysc.Ts);
 				sysc.state = _T("横向纯惯性");
 				break;
 			case PURE_SINS_HAISHI_P:
@@ -2047,7 +2056,7 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 				sysc.state = _T("haishi降噪滤波"); 
 				break;
 			case NAVI_PHINS_VEL2:                           //20171128	
-				avecmul(3, tempob_v, phins.ang, D2R);//乘以刻度因子
+				avecmul(3, tempob_v, phins.ang, D2R);
 				ang2cnb(cnb_phins, tempob_v);
 				vecmul(3, 3, phins.vel_b, (double*)cnb_phins, phins.vel);
 				avecmul(3, tempob_v, phins.vel_b, 1.04);//乘以刻度因子

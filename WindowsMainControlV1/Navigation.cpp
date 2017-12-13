@@ -33,9 +33,9 @@ void sinscal_zundamp(double quart_del )
 	vecmul(3,3,win_b,(double*)infor.cnb_mat,win_n);
 	if(sysc.Fs==100)//haishi设备用
 		memset(win_b, 0, sizeof(win_b));
-	vecadd(3,a_wib_b,infor.gyro_wib_b,infor.gyro_old);
- 	avecmul(3,a_wib_b,a_wib_b,0.5);
-//	avecmul(3, a_wib_b, infor.gyro_wib_b, 1);  //yucia调试用
+//	vecadd(3,a_wib_b,infor.gyro_wib_b,infor.gyro_old);
+//	avecmul(3,a_wib_b,a_wib_b,0.5);
+	avecmul(3, a_wib_b, infor.gyro_wib_b, 1);  //yucia调试用
 
 	vecsub(3,wnb_b,a_wib_b,win_b);
 	avecmul(3,sita,wnb_b,quart_del);

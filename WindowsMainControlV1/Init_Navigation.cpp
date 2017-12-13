@@ -51,7 +51,17 @@ void init_basicnavi(void)//infor，out_nav，SINSpara，IMUout
 	infor.flagFire = 0;
 	infor.device_type = 5;
 	infor.flagComps = 0;
-		
+	//初始化横向数据
+	memset(inforS.att_angle_S, 0, sizeof(inforS.att_angle_S));  
+	memset(inforS.vel_S, 0, sizeof(inforS.vel_S));
+	memset(inforS.att_angle, 0, sizeof(inforS.att_angle));
+	memset(inforS.vel_n, 0, sizeof(inforS.vel_n));
+	inforS.lati_S = 0;    
+	inforS.longi_S = 0;
+	inforS.high_S = 0;
+	inforS.lati = 0;
+	inforS.longi = 0;
+	inforS.high= 0;		
 }
 //粗对准初始化
 void init_coarsealign(void)	// c_infor
@@ -260,7 +270,7 @@ void Kal_Init_P_15(SKALMAN_15_3& temp_kal,char mode)              //20171108
 
 	memset(temp_kal.Q_state, 0, sizeof(temp_kal.Q_state));
 
-	temp_kal.Q_state[0][0] = powl(500 * ug, 2);
+	temp_kal.Q_state[0][0] = powl(50 * ug, 2);         //20171213 这里应为50ug!!!!!查了我半天！
 	temp_kal.Q_state[1][1] = temp_kal.Q_state[0][0];
 	temp_kal.Q_state[2][2] = temp_kal.Q_state[0][0];
 
@@ -275,9 +285,9 @@ void Kal_Init_P_15(SKALMAN_15_3& temp_kal,char mode)              //20171108
 		temp_kal.H_matrix[0][6] = 1;
 		temp_kal.H_matrix[1][7] = 1;
 		temp_kal.H_matrix[2][8] = 1;
-		temp_kal.R_measure[0][0] = powl(1 / RE, 2);
-		temp_kal.R_measure[1][1] = powl(1 / RE, 2);
-		temp_kal.R_measure[2][2] = powl(1, 2);
+		temp_kal.R_measure[0][0] = powl(10 / RE, 2);
+		temp_kal.R_measure[1][1] = powl(10 / RE, 2);
+		temp_kal.R_measure[2][2] = powl(10, 2);
 
 	}
 	if (mode == YA_VEL)
