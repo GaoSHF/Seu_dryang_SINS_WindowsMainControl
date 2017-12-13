@@ -81,29 +81,14 @@ bool Init_Card(HWND tempHwnd,char navigationmodel=2, BYTE channel=0x0f)
 	 stff[0].LENR = 13;
 	 wmode[0] = 1;//422
 
-	 stdf[3].BaudRate = 115200;// bits rate// GPS串口
+	 stdf[3].BaudRate = 115200;// bits rate// GPS串口，bestposb
 	 stff[3].HDR = 0xAA;
 	 stff[3].EDR = 0x44;
-	 wmode[3] = 0;//232
-	 
-	 //if(navigationmodel==2)//水下组合导航
-	 //{
-	 //   strm[1].ProtocolSel = 1;
-		//strm[1].IsProtocol = TRUE; // transparent
-		//stff[1].LENR =177;
-	 //}
-	// else if(navigationmodel==3)//Sins/GPS松组合
-	 {
-		 strm[3].ProtocolSel = 1;
-		 strm[3].IsProtocol = TRUE; // transparent
-		 stff[3].LENR =101;
-	 }	     
-	 //else if(navigationmodel==4)//Sins/GPS紧组合
-	 //    strm[1].IsProtocol = FALSE; // transparent
+	 wmode[3] = 0;//232	 
+ 	 strm[3].ProtocolSel = 1;
+	 strm[3].IsProtocol = TRUE; // transparent
+	 stff[3].LENR =101;
 
-	 //stdf[3].BaudRate = 7200;//转台控制
- 	// stdf[3].DataLength = 7; // data bits
-	 //stff[3].HDR = 0xFF;
 		 
 #ifndef CARD_DEBUG
 	//  Open the card and setting up it

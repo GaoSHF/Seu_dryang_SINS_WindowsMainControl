@@ -275,9 +275,9 @@ void Kal_Init_P_15(SKALMAN_15_3& temp_kal,char mode)              //20171108
 		temp_kal.H_matrix[0][6] = 1;
 		temp_kal.H_matrix[1][7] = 1;
 		temp_kal.H_matrix[2][8] = 1;
-		temp_kal.R_measure[0][0] = powl(1 / RE, 2);
-		temp_kal.R_measure[1][1] = powl(1 / RE, 2);
-		temp_kal.R_measure[2][2] = powl(1, 2);
+		temp_kal.R_measure[0][0] = powl(3 / RE, 2);
+		temp_kal.R_measure[1][1] = powl(3 / RE, 2);
+		temp_kal.R_measure[2][2] = powl(5, 2);
 
 	}
 	if (mode == YA_VEL)
