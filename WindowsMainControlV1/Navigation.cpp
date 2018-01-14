@@ -100,7 +100,7 @@ void sinscal_rv(double quart_del)
 	win_n[1] = WIE * cos(infor.pos[0]) + dlongi * cos(infor.pos[0]);
 	win_n[2] = WIE * sin(infor.pos[0]) + dlongi * sin(infor.pos[0]);
 	avecmul(3, rvin, win_n, -quart_del);
-	memcpy(rvib_old, infor.rvib, sizeof(infor.rvib));
+	/*memcpy(rvib_old, infor.rvib, sizeof(infor.rvib));
 	vecadd(3, infor.rvib, infor.gyro_wib_b, infor.gyro_old);
 	avecmul(3, infor.rvib, infor.rvib, quart_del/2);
 	if (1 == sysc.data_cnt)
@@ -116,8 +116,28 @@ void sinscal_rv(double quart_del)
 	qmul(infor.quart, tempq, infor.quart);
 	//optq(infor.quart);
 	q2cnb(infor.cnb_mat, infor.quart);
+	cnb2ang(infor.cnb_mat, infor.att_angle);          // 计算姿态角*/
+	double  win_b[3], wnb_b[3], sita[3];
+	double a_wib_b[3];
+	win_n[0] = -dlati;
+	win_n[1] = WIE * cos(infor.pos[0]) + dlongi * cos(infor.pos[0]);
+	win_n[2] = WIE * sin(infor.pos[0]) + dlongi * sin(infor.pos[0]);
+
+	/* Ci->n 在b系上的投影，Cn->b 由粗对准计算 */
+	vecmul(3, 3, win_b, (double*)infor.cnb_mat, win_n);
+	vecadd(3, a_wib_b, infor.gyro_wib_b, infor.gyro_old);
+	avecmul(3, a_wib_b, a_wib_b, 0.5);
+
+	vecsub(3, wnb_b, a_wib_b, win_b);
+	avecmul(3, sita, wnb_b, quart_del);
+
+	/* 通过四元数更新Cn->b */
+	qcal(sita, infor.quart);
+	optq(infor.quart);
+	q2cnb(infor.cnb_mat, infor.quart);
 	cnb2ang(infor.cnb_mat, infor.att_angle);          // 计算姿态角
-														  		
+
+	///////速度更新												  		
 	avecmul(3, dsita, infor.gyro_wib_b, quart_del);
 	avecmul(3, dsb, infor.acce_b, quart_del);
 	cvecmul(vrot,dsita, dsb);
@@ -147,9 +167,9 @@ void sinscal_rv(double quart_del)
 	fw[2] = 2 * WIE * sin(infor.pos[0]) + dlongi * sin(infor.pos[0]);
 
 	/* 惯性导航式8.1.4 */
-	infor.dvel_n[0] = an[0] + fw[2] * infor.vel_n[1] -fw[1] * infor.vel_n[2];
-	infor.dvel_n[1] = an[1] - fw[2] * infor.vel_n[0] +fw[0] * infor.vel_n[2];
-	infor.dvel_n[2] = an[2] + fw[1] * infor.vel_n[0] - fw[0] * infor.vel_n[1] - g;   //+
+	infor.dvel_n[0] = an[0] + fw[2] * infor.vel_n[1];// -fw[1] * infor.vel_n[2];
+	infor.dvel_n[1] = an[1] - fw[2] * infor.vel_n[0];// +fw[0] * infor.vel_n[2];
+ 	infor.dvel_n[2] = an[2] + fw[1] * infor.vel_n[0] - fw[0] * infor.vel_n[1] - g;   //+
 	memcpy(infor.old_v, infor.vel_n, sizeof(infor.vel_n));
 	infor.vel_n[0] += infor.dvel_n[0] * quart_del;
 	infor.vel_n[1] += infor.dvel_n[1] * quart_del;

@@ -88,8 +88,10 @@ bool isCreateTimer = false;//创建定时器事件
 int m_PRecNum;//纯录数录取的数据量
 int datanavinum = 0;
 bool temp_test = true;
-// 用于应用程序“关于”菜单项的 CAboutDlg 对话框
+double temp_ang[3], temp_pos[3], temp_v[3];
 #pragma endregion VarDef 
+
+// 用于应用程序“关于”菜单项的 CAboutDlg 对话框
 class CAboutDlg : public CDialogEx
 {
 public:
@@ -361,7 +363,7 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnStartcard()
 		TestModeNum = m_TestMode.GetCurSel();
 		switch (TestModeNum)
 		{
-		case 1:OnBnClickedBtnStartphins(); break;
+		case 1:if(!is_start_phins) OnBnClickedBtnStartphins(); break;
 		case 2: case 3: sysc.state = _T("纯录数模式"); break;
 		default:break;
 		}
@@ -383,7 +385,7 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnStartcard()
 		GetDlgItem(IDC_BTN_SAVEPATH)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BTN_StartCal)->EnableWindow(TRUE);
 		m_TestMode.EnableWindow(FALSE);
-		m_NaviMode.EnableWindow(FALSE);
+	//	m_NaviMode.EnableWindow(FALSE);
 
 	}
 	else
@@ -393,7 +395,7 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnStartcard()
 		GetDlgItem(IDC_BTN_SAVEPATH)->EnableWindow(FALSE);
 		GetDlgItem(IDC_BTN_StartCal)->EnableWindow(FALSE);
 		m_TestMode.EnableWindow(TRUE);
-		m_NaviMode.EnableWindow(TRUE);
+	//	m_NaviMode.EnableWindow(TRUE);
 
 	}
 }
@@ -641,7 +643,7 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnReadme()
 {
 	// TODO: 在此添加控件通知处理程序代码
 	CString c;
-	c = "!!!修改各种参数前，请先选择刷新暂停!!!";
+	c = "!!!修改各种参数前，请先选择刷新暂停!!!\n复位功能不是太好用，建议直接重启防止出现意外";
 	MessageBox(c, _T("★★★★★Windows导航平台监控软件说明★★★★★"), MB_OK);
 
 }
@@ -655,8 +657,9 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnSaveHelp()
 		fosn数据格式为：1 FOSN接收计数，2 FOSN工作时间，3~5陀螺，6~8加表，9~11姿态，12~14速度，15~17位置\n\
 		gps数据格式为：1 FOSN接收计数，2 GPS时间，3~5 经纬高\n\
 		phins数据格式为：1 PHINS接收计数，2 FOSN接收计数，3 PHINS时间，4~6姿态，7~9速度，10~12位置\n\n\*/
-	c = "·录数前选择单文件模式或者多文件模式，多文件模式把各模块数据单独录取\n\
+	c = "·录数前选择单文件模式或者多文件模式，多文件模式目前已不在使用\n\
 ·选择保存路径为文件夹路径，之后自动根据系统时间自动生成录数文件\n\
+·请注意该命名最小单位为分钟，同一分钟连续建立文件会覆盖\n\
 ·在转台和车载模式下，只有数据解算开始才会录数，所以放心先点录数再点解算\n\n\
 ·陀螺单位为°/s,姿态单位为°\n\
 单文件情况格式：\n\
@@ -677,7 +680,8 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnSaveHelp()
 30~35 GPS位置，速度（没有）\n\
 36~38 FOSN姿态\n\
 39~41 FOSN速度\n\
-42~44 FOSN位置 \n\nby Dr.Yang";
+42~44 FOSN位置 \n\
+45~47 ZT姿态\n\nby Dr.Yang";
 	MessageBox(c, _T("★★★★★Windows导航平台监控软件录数格式说明★★★★★"), MB_OK);
 }
 void CWindowsMainControlV1Dlg::OnBnClickedCancel()
@@ -854,7 +858,8 @@ void CWindowsMainControlV1Dlg::OnCbnSelchangeTextMode()
 			GetDlgItem(IDC_BTN_StartCal)->EnableWindow(TRUE);
 			GetDlgItem(IDC_BTN_StartCard)->EnableWindow(FALSE);
 			GetDlgItem(IDC_BTN_StartPhins)->EnableWindow(FALSE);
-
+			refresh_time = 5000;
+			UpdateData(false);
 			CWinThread* simu_Thread;
 			THREADPARAM  *phWndParam = new THREADPARAM;
 			phWndParam->hwnd = m_hWnd;
@@ -978,7 +983,7 @@ bool CWindowsMainControlV1Dlg::init_Combo()
 	}
 	m_CoarseAignMode.SetCurSel(0);
 
-	CString str3[] = { _T("无"),_T("罗经法"),_T("零速校正"),_T("yucia完美双位置"),_T("XXX"),_T("自抗扰对准"),_T("自定义方法") };
+	CString str3[] = { _T("无"),_T("罗经法"),_T("零速校正"),_T("yucia完美双位置"),_T("自定义方法"),_T("自抗扰对准"),_T("自定义方法") };
 	for (i = 0; i < 7; i++)
 	{
 		judge_tf = m_FineAignMode.InsertString(i, str3[i]);
@@ -990,7 +995,7 @@ bool CWindowsMainControlV1Dlg::init_Combo()
 	}
 	m_FineAignMode.SetCurSel(0);
 
-	CString str4[] = { _T("仅纯惯性"),_T("速度+航向"),_T("速度+位置+姿态"),_T("GPS位置组合"),_T("GPS速度组合"),_T("haishi组合"),_T("haishi降噪"),_T("PS位置组合"),_T("PS速度组合n"),_T("PS速度组合b"),_T("速度 + 航向组合b系") };
+	CString str4[] = { _T("仅纯惯性"),_T("速度+航向"),_T("速度+位置+姿态(没写)"),_T("GPS位置组合"),_T("GPS速度组合(没写)"),_T("haishi组合"),_T("haishi降噪"),_T("PS位置组合"),_T("PS速度组合n"),_T("PS速度组合b"),_T("b系速度 + 航向(没写)") };
 	for (i = 0; i < 11; i++)
 	{
 		judge_tf = m_NaviMode.InsertString(i, str4[i]);
@@ -1303,9 +1308,9 @@ void CWindowsMainControlV1Dlg::getfileData()
 			&ZT.ang[0], &ZT.ang[1], &ZT.ang[2],
 			&fosn.ang[0], &fosn.ang[1], &fosn.ang[2]);
 	}
-	if (RS_para.file_mode == 0)//对应车载录数模式
+	if (RS_para.file_mode == 0)//对应车载录数模式//2017.12.12改成47位，首日的录数已经不适用此
 	{
-		fscanf_s(RS_para.RdataFilefid, "%d,%d,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf\n",
+		fscanf_s(RS_para.RdataFilefid, "%d,%d,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf\n",
 			&fosn.recnum, &ZT.cnt, &fosn.time, &gps.time, &phins.utc,
 			&IMUout.gyro_b[0], &IMUout.gyro_b[1], &IMUout.gyro_b[2],
 			&IMUout.acce_b[0], &IMUout.acce_b[1], &IMUout.acce_b[2],
@@ -1314,12 +1319,13 @@ void CWindowsMainControlV1Dlg::getfileData()
 			&temp, &temp, &temp,
 			&phins.ang[0], &phins.ang[1], &phins.ang[2],
 			&phins.vel[0], &phins.vel[1], &phins.vel[2],
-			&phins.pos[2], &phins.pos[0], &phins.pos[1],
+			&phins.pos[0], &phins.pos[1], &phins.pos[2],
 			&gps.pos[0], &gps.pos[1], &gps.pos[2],
 			&gps.vel[0], &gps.vel[1], &gps.vel[2],
 			&fosn.ang[0], &fosn.ang[1], &fosn.ang[2],
 			&fosn.vel[0], &fosn.vel[1], &fosn.vel[2],
-			&fosn.pos[0], &fosn.pos[1], &fosn.pos[2]);
+			&fosn.pos[0], &fosn.pos[1], &fosn.pos[2],
+			&temp, &temp, &temp);
 		memcpy(real_pos, phins.pos, sizeof(phins.pos));
 		memcpy(ZT.ang, phins.ang, sizeof(phins.ang));
 		real_pos[0] = real_pos[0] * D2R;
@@ -1435,7 +1441,7 @@ void CWindowsMainControlV1Dlg::getfileData()
 			if (RS_para.file_mode == 0)
 			{
 				infor.pos[0] = phins.pos[0] * D2R;
-				infor.pos[1] = phins.pos[1] * D2R;
+				infor.pos[1] = phins.pos[1] * D2R;	
 				infor.pos[2] = phins.pos[2];
 				initial_latitude = infor.pos[0] * R2D;
 				initial_longitude = infor.pos[1] * R2D;
@@ -1566,6 +1572,7 @@ void CWindowsMainControlV1Dlg::SaveData()
 	if (saveStart&&is_SingleFile)
 	{
 		if (TestModeNum == 0)//转台实验
+		{	
 			if (FineModeNum == FINE_Yucia)
 				fprintf_s(fid_Cal, "%d,%d,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf\n",
 					fosn.recnum, ZT.cnt,
@@ -1588,9 +1595,10 @@ void CWindowsMainControlV1Dlg::SaveData()
 					INScal.pos[0], INScal.pos[1], INScal.pos[2],
 					ZT.ang[0], ZT.ang[1], ZT.ang[2],
 					fosn.ang[0], fosn.ang[1], fosn.ang[2]);
+		}
 #pragma region Datacz
 			if (TestModeNum == 1)//车载实验数据标准格式
-				/*1~5 帧号录数统计，转台帧号/多功能版帧号/备用，fosn时间,gps时间，phins时间
+				/*1~5 帧号录数统计，转台帧号/多功能版帧号/GPS有效性，fosn时间,gps时间，phins时间
 				6~11  陀螺加表（陀螺单位为 度/S）
 				12~14 解算姿态
 				15~17 解算速度
@@ -1602,7 +1610,7 @@ void CWindowsMainControlV1Dlg::SaveData()
 				36~38 FOSN姿态
 				39~41 FOSN速度
 				42~44 FOSN位置
-				45~47 空
+				45~47 空（转台姿态）
 				|陀螺                 加表                |解算姿态            速度                  位置                |PS姿态               速度                位置                 |GPS位置              速度                |FOSN姿态            速度                 位置    */
 			{
 				if (PureINSModeNum == PURE_SINS_TRANSVERSE)
@@ -1632,7 +1640,7 @@ void CWindowsMainControlV1Dlg::SaveData()
 				else
 				{
 					fprintf_s(fid_Cal, "%d,%d,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%lf,%lf,%lf\n",
-						fosn.recnum, ZT.cnt, fosn.time, gps.time, phins.utc,
+						fosn.recnum, gps.flag, fosn.time, gps.time, phins.utc,
 						IMUout.gyro_b[0], IMUout.gyro_b[1], IMUout.gyro_b[2],
 						IMUout.acce_b[0], IMUout.acce_b[1], IMUout.acce_b[2],
 						INScal.ang[0], INScal.ang[1], INScal.ang[2],
@@ -1642,7 +1650,7 @@ void CWindowsMainControlV1Dlg::SaveData()
 						phins.vel[0], phins.vel[1], phins.vel[2],
 						phins.pos[0], phins.pos[1], phins.pos[2],
 						gps.pos[0], gps.pos[1], gps.pos[2],
-						0.0, 0.0, 0.0,
+						0.0, 0.0, 0.0,		
 						fosn.ang[0], fosn.ang[1], fosn.ang[2],
 						fosn.vel[0], fosn.vel[1], fosn.vel[2],
 						fosn.pos[0], fosn.pos[1], fosn.pos[2],						 
@@ -1740,17 +1748,22 @@ void CWindowsMainControlV1Dlg::SaveData()
 				fflush(fid_Cal);
 				return;
 			}
-			      //		       |                    |                    |                    |                    |                    |                    |                    |
-			fprintf_s(fid_Cal, "%lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf\n",
-				fosn.time,
+			fprintf_s(fid_Cal, "%d,%d,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%lf,%lf,%lf\n",
+				fosn.recnum, ZT.cnt, fosn.time, gps.time, phins.utc,
 				IMUout.gyro_b[0], IMUout.gyro_b[1], IMUout.gyro_b[2],
 				IMUout.acce_b[0], IMUout.acce_b[1], IMUout.acce_b[2],
 				INScal.ang[0], INScal.ang[1], INScal.ang[2],
 				INScal.vel[0], INScal.vel[1], INScal.vel[2],
 				INScal.pos[0], INScal.pos[1], INScal.pos[2],
-				ZT.ang[0], ZT.ang[1], ZT.ang[2],
+				phins.ang[0], phins.ang[1], phins.ang[2],
+				phins.vel[0], phins.vel[1], phins.vel[2],
+				phins.pos[0], phins.pos[1], phins.pos[2],
+				gps.pos[0], gps.pos[1], gps.pos[2],
+				0.0, 0.0, 0.0,
+				fosn.ang[0], fosn.ang[1], fosn.ang[2],
 				fosn.vel[0], fosn.vel[1], fosn.vel[2],
-				fosn.pos[0], fosn.pos[1], fosn.pos[2]);
+				fosn.pos[0], fosn.pos[1], fosn.pos[2],
+				0.0, 0.0, 0.0);
 		}
 		fflush(fid_Cal);
 	}
@@ -2007,9 +2020,12 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 			{
 			case NAVI_SINS_UNDUMP:sysc.state = _T("纯惯性"); break;
 			case NAVI_SG:
-				tempob[0] = gps.pos[0] * D2R;
+			/*	tempob[0] = gps.pos[0] * D2R;
 				tempob[1] = gps.pos[1] * D2R;
-				tempob[2] = gps.pos[2];
+				tempob[2] = gps.pos[2];*/
+				tempob[0] = fosn.pos[0] * D2R;
+				tempob[1] = fosn.pos[1] * D2R;
+				tempob[2] = fosn.pos[2];
 				vecsub(3, tempob, infor.pos, tempob);
 				//输入的观测量已经是差值
 				navi_Kal_15_3(nkalman, tempob, YA_POS);
@@ -2034,8 +2050,12 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 					tempob_att[2] += 2 * PAI;
 				vecsub(3, tempob, infor.att_angle, tempob_att);				
 				DeltaAtt2Phi(infor, tempob, tempob);//姿态误差角到失准角处理
-
 				vecsub(2, tempob, infor.vel_n, tempob_v);
+
+				cvecmul(infor.vel_arm, infor.wnb_b_arm, infor.rp);
+				vecmul(3, 3, infor.vel_arm, (double *)infor.cbn_mat, infor.vel_arm);
+				tempob[0] = tempob[0] - infor.vel_arm[0];
+				tempob[1] = tempob[1] - infor.vel_arm[1];
 				//输入的观测量已经是差值
 				navi_Kal_15_3(nkalman,tempob, YA_VELANDAZ);
 				sysc.state = _T("n系速度+航向组合");
