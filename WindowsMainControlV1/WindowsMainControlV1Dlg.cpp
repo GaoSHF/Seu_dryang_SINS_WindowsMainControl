@@ -1253,10 +1253,6 @@ int CWindowsMainControlV1Dlg::GPSChannel()
 			{
 			case 0x2A:		
 #pragma region POS_VEL
-				if (BufGPS[28] == 0)//solution computed
-					return 1;
-				else
-					return 0;
 				for (i = 0; i < 4; i++)
 					int4ch.Ch[i] = BufGPS[i + 16];
 				gps.time = int4ch.Int*0.001;
@@ -1277,14 +1273,14 @@ int CWindowsMainControlV1Dlg::GPSChannel()
 				gps.vel[0] = -gps.hv*sin(gps.att*D2R);
 				gps.vel[1] = gps.hv*cos(gps.att*D2R);
 				gps.vel[2] = gps.vv;
-				break;
-#pragma endregion POS_VEL
-			case 0x63:
-#pragma region VEL_POS
 				if (BufGPS[28] == 0)//solution computed
 					return 1;
 				else
 					return 0;
+				break;
+#pragma endregion POS_VEL
+			case 0x63:
+#pragma region VEL_POS
 				for (i = 0; i < 4; i++)
 					int4ch.Ch[i] = BufGPS[i + 16];
 				gps.time = int4ch.Int*0.001;
@@ -1305,6 +1301,10 @@ int CWindowsMainControlV1Dlg::GPSChannel()
 				gps.vel[0] = -gps.hv*sin(gps.att*D2R);
 				gps.vel[1] = gps.hv*cos(gps.att*D2R);
 				gps.vel[2] = gps.vv;
+				if (BufGPS[28] == 0)//solution computed
+					return 1;
+				else
+					return 0;
 				break;
 #pragma endregion VEL_POS
 			default:break;
