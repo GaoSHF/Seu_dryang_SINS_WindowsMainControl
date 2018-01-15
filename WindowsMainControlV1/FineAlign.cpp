@@ -249,7 +249,7 @@ void F_matrix_15(SYS_ELEMENT temp_infor,double F_15[15][15])
 
 //@brief  根据puresins结构体参数求取16维F阵
 void F_matrix_16(SYS_ELEMENT temp_infor, double F_16[16][16])
-{
+{ 
 	int		i, j;
 	double	w0[8], w1[3], w2[3];
 	double temp = (1 - E2* sin(temp_infor.pos[0])* sin(temp_infor.pos[0]));
@@ -540,7 +540,7 @@ void navi_Kal_15_3(SKALMAN_15_3& temp_kal, double observer[3], char mode)
 	if (0 == sysc.data_cnt % (sysc.Fs / sysc.Kal_fr))
 	{
 		avecmul(3,temp_kal.Mea_vector, observer, 1.0);
-		Kal_update_15_3(temp_kal, 1);
+		Kal_update_15_3(temp_kal, sysc.Kal_fr);
 		if (sysc.cnt_s >= sysc.algn_time + 20)//20s之后开始校正
 		{
 			vecsub(3, infor.vel_n, infor.vel_n, temp_kal.X_vector);

@@ -87,7 +87,7 @@ bool Init_Card(HWND tempHwnd,char navigationmodel=2, BYTE channel=0x0f)
 	 wmode[3] = 0;//232	 
  	 strm[3].ProtocolSel = 1;
 	 strm[3].IsProtocol = TRUE; // transparent
-	 stff[3].LENR =101;
+	 stff[3].LENR =177;//bestvel+bestpos-head=76+104-3 
 
 		 
 #ifndef CARD_DEBUG

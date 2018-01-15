@@ -89,7 +89,7 @@ struct SYS_ELEMENT
 	double gyro_old[3];//上一次采集的陀螺值
 	double acce_b[3];//加表在b系值
 	double acce_old[3];
-	/*==========初始位置===========*/
+	
 	double initial_pos[3];
 	double user_position[3];
 
@@ -259,10 +259,13 @@ public:
 	double vel[3];
 	int cnt;
 	int flag;
+	double vv,hv,att;//Vertical speed,Horizontal speed,Actual direction with respect to True North
+	
 	GPS()
 	{
 		memset(vel, 0, sizeof(vel));
 		memset(pos, 0, sizeof(pos));
+		
 		time = 0.0;
 		cnt = 0;
 		flag = 0;
@@ -271,6 +274,7 @@ public:
 	{
 		memset(vel, 0, sizeof(vel));
 		memset(pos, 0, sizeof(pos));
+		
 		time = 0.0;
 		cnt = 0;
 		flag = 0;
@@ -467,11 +471,13 @@ public:
 	bool isstart;//开始标志
 	bool canCal;//解算允许
 	int file_mode;//文件格式
+	int skiptime;//跳过起始的一段数据
 	CString RdataFile;
 	FILE *RdataFilefid;
 	READSIMULATION() 
 	{
 		delay5ms = 0;
+		skiptime = 0;
 		ReadInitPos = 0;
 		ReadInitAtt = 0;
 		RS_mode = false;
@@ -482,6 +488,7 @@ public:
 	void reset()
 	{
 		delay5ms = 0;
+		skiptime = 0;
 		ReadInitPos = 0;
 		ReadInitAtt = 0;
 		RS_mode = false;

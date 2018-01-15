@@ -187,6 +187,9 @@ void CWindowsMainControlV1Dlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_GPS_Latitude, gps.pos[0]);
 	DDX_Text(pDX, IDC_GPS_Longitude, gps.pos[1]);
 	DDX_Text(pDX, IDC_GPS_Height, gps.pos[2]);
+	DDX_Text(pDX, IDC_GPS_Ve, gps.vel[0]);
+	DDX_Text(pDX, IDC_GPS_Vn, gps.vel[1]);
+	DDX_Text(pDX, IDC_GPS_Vu, gps.vel[2]);
 	DDX_Text(pDX, IDC_GPS_Time, gps.time);
 	DDX_Text(pDX, IDC_GPS_FLAG, gps.flag);
 	DDX_Text(pDX, IDC_GPS_CNT, gps.cnt);
@@ -845,6 +848,8 @@ void CWindowsMainControlV1Dlg::OnCbnSelchangeTextMode()
 			RS_para.ReadInitPos = ReadSimuDlg1.ReadInitPos;
 			RS_para.RdataFile = ReadSimuDlg1.filename;
 			RS_para.file_mode = ReadSimuDlg1.combonum;
+			RS_para.skiptime = ReadSimuDlg1.Skiptime;
+			if (RS_para.skiptime == 0) RS_para.skiptime = -1;
 			fopen_s(&RS_para.RdataFilefid, RS_para.RdataFile + "", "r");
 			RS_para.canCal = 1;
 			RS_para.RS_mode = true;
@@ -1238,32 +1243,72 @@ void CWindowsMainControlV1Dlg::ZTChannel()
 int CWindowsMainControlV1Dlg::GPSChannel()
 {
 	WORD rt = 0;
+	int i;
 	//	Protocol Mode
 	if (Sio_Rx_IsFrameOver(hCard, 3))
 	{
 		Sio_ReadFrame(hCard, 3, BufGPS, &rt);
-		if (BufGPS[0] == 0xAA && BufGPS[1] == 0x44 && BufGPS[2] == 0x12 && BufGPS[4] == 0x2A)
-		{
-			int i;
-			for (i = 0; i < 24; i++)
-				gps_pv.ch[i] = BufGPS[i + 36];
-			gps.pos[0] = gps_pv.db[0];//*D2R;
-			gps.pos[1] = gps_pv.db[1];//*D2R;
-			gps.pos[2] = gps_pv.db[2];	
-
-			for (i = 0; i < 4; i++)
-				int4ch.Ch[i] = BufGPS[i + 16];
-			gps.time = int4ch.Int*0.001;
-			if (is_startCal)
+		if (BufGPS[0] == 0xAA && BufGPS[1] == 0x44 && BufGPS[2] == 0x12)
+			switch(BufGPS[4])//pos 
 			{
-				gps.cnt++;
-			}
-			if (BufGPS[28] == 0)
-				return 1;
-			else
-				return 0;
-		}
-		else return 0;
+			case 0x2A:		
+#pragma region POS_VEL
+				if (BufGPS[28] == 0)//solution computed
+					return 1;
+				else
+					return 0;
+				for (i = 0; i < 4; i++)
+					int4ch.Ch[i] = BufGPS[i + 16];
+				gps.time = int4ch.Int*0.001;
+
+				for (i = 0; i < 24; i++)
+					gps_pv.ch[i] = BufGPS[i + 36];
+				gps.pos[0] = gps_pv.db[0];//*D2R;
+				gps.pos[1] = gps_pv.db[1];//*D2R;
+				gps.pos[2] = gps_pv.db[2];	
+
+				for (i = 0; i < 24; i++)
+					gps_pv.ch[i] = BufGPS[i + 104+28+16];
+				gps.hv = gps_pv.db[0];
+				gps.att = gps_pv.db[1];
+				gps.vv = gps_pv.db[2];
+				if (is_startCal) gps.cnt++;	
+				
+				gps.vel[0] = -gps.hv*sin(gps.att*D2R);
+				gps.vel[1] = gps.hv*cos(gps.att*D2R);
+				gps.vel[2] = gps.vv;
+				break;
+#pragma endregion POS_VEL
+			case 0x63:
+#pragma region VEL_POS
+				if (BufGPS[28] == 0)//solution computed
+					return 1;
+				else
+					return 0;
+				for (i = 0; i < 4; i++)
+					int4ch.Ch[i] = BufGPS[i + 16];
+				gps.time = int4ch.Int*0.001;
+
+				for (i = 0; i < 24; i++)
+					gps_pv.ch[i] = BufGPS[i + 28+16];
+				gps.hv = gps_pv.db[0];
+				gps.att = gps_pv.db[1];
+				gps.vv = gps_pv.db[2];	
+
+				for (i = 0; i < 24; i++)
+					gps_pv.ch[i] = BufGPS[i + 76 + 28 + 8];
+				gps.pos[0] = gps_pv.db[0];
+				gps.pos[1] = gps_pv.db[1];
+				gps.pos[2] = gps_pv.db[2];
+				if (is_startCal) gps.cnt++;
+
+				gps.vel[0] = -gps.hv*sin(gps.att*D2R);
+				gps.vel[1] = gps.hv*cos(gps.att*D2R);
+				gps.vel[2] = gps.vv;
+				break;
+#pragma endregion VEL_POS
+			default:break;
+			}			
 	}
 	else
 		return 0;
@@ -1644,7 +1689,7 @@ void CWindowsMainControlV1Dlg::SaveData()
 						phins.vel[0], phins.vel[1], phins.vel[2],
 						phins.pos[0], phins.pos[1], phins.pos[2],
 						gps.pos[0], gps.pos[1], gps.pos[2],
-						0.0, 0.0, 0.0,		
+						gps.vel[0], gps.vel[1], gps.vel[2],
 						fosn.ang[0], fosn.ang[1], fosn.ang[2],
 						fosn.vel[0], fosn.vel[1], fosn.vel[2],
 						fosn.pos[0], fosn.pos[1], fosn.pos[2],						 
@@ -1916,8 +1961,8 @@ void CWindowsMainControlV1Dlg::FineThread()
 				switch (TestModeNum)
 				{
 				case 0:memset(temp_ob,0,sizeof(temp_ob)); break;
-				case 1:avecmul(3, temp_ob, phins.vel, 1); break;
-				case 6:avecmul(3, temp_ob, phins.vel, 1); break;	
+				case 1:avecmul(3, temp_ob, phins.vel, 1.0); break;
+				case 6:avecmul(3, temp_ob, phins.vel, 0.0); break;	
 				default:break;
 				}
 				fine_yucia(fkalman, temp_ob, YA_VEL);
@@ -2003,16 +2048,23 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 			{
 			case NAVI_SINS_UNDUMP:sysc.state = _T("纯惯性"); break;
 			case NAVI_SG:
-			/*	tempob[0] = gps.pos[0] * D2R;
+				tempob[0] = gps.pos[0] * D2R;
 				tempob[1] = gps.pos[1] * D2R;
-				tempob[2] = gps.pos[2];*/
-				tempob[0] = fosn.pos[0] * D2R;
+				tempob[2] = gps.pos[2];
+				/*tempob[0] = fosn.pos[0] * D2R;
 				tempob[1] = fosn.pos[1] * D2R;
-				tempob[2] = fosn.pos[2];
+				tempob[2] = fosn.pos[2];*/
 				vecsub(3, tempob, infor.pos, tempob);
 				//输入的观测量已经是差值
 				navi_Kal_15_3(nkalman, tempob, YA_POS);
 				sysc.state = _T("GPS位置组合");
+				break;
+			case NAVI_VEL:
+				avecmul(3, tempob_v, gps.vel, 1);//观测量的获得方式
+				vecsub(3, tempob, infor.vel_n, tempob_v);
+				//输入的观测量已经是差值
+				navi_Kal_15_3(nkalman, tempob, YA_VELANDAZ);
+				sysc.state = _T("GPS速度组合");
 				break;
 			case NAVI_PHINS_POS:
 				tempob[0] = phins.pos[0] * D2R;
@@ -2166,9 +2218,36 @@ UINT CWindowsMainControlV1Dlg::SimulateThread(LPVOID pParam)
 				return 0;
 			}
 			IMUdataCount();
-			CoarseThread();
-			FineThread();
-			NaviThread();
+			if (sysc.cnt_s == RS_para.skiptime)//设定一个跳过数据的长度，该段不解算
+			{
+				sysc.cnt_s = 0;
+				RS_para.skiptime = -1;
+
+				infor.pos[0] = phins.pos[0] * D2R;
+				infor.pos[1] = phins.pos[1] * D2R;
+				infor.pos[2] = phins.pos[2];
+				initial_latitude = infor.pos[0] * R2D;
+				initial_longitude = infor.pos[1] * R2D;
+				initial_height = infor.pos[2];
+				infor.vel_n[0] = phins.vel[0];       
+				infor.vel_n[1] = phins.vel[1];
+				infor.vel_n[2] = phins.vel[2];
+				infor.att_angle[0] = (phins.ang[0] + 0.1) * D2R;
+				infor.att_angle[1] = (phins.ang[1] + 0.1) * D2R;
+				infor.att_angle[2] = (phins.ang[2] + 0.5) * D2R;
+				ang2cnb(infor.cnb_mat, infor.att_angle);
+				cnb2q(infor.cnb_mat, infor.quart);
+				optq(infor.quart);
+
+				
+			}
+			if (sysc.cnt_s > RS_para.skiptime)
+			{
+				CoarseThread();
+				FineThread();
+				NaviThread();
+			}	
+
 			DataTrans();
 			if (RS_para.delay5ms == 1) RS_para.canCal = 0;
 

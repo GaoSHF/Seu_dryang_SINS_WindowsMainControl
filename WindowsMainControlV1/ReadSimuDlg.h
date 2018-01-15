@@ -31,5 +31,6 @@ public:
 	CButton RS_ReadInitPos;
 	CButton RS_ReadInitAtt;
 	int Delay5ms, ReadInitPos, ReadInitAtt;
+	int Skiptime;
 	void init_RScombo();
 };
