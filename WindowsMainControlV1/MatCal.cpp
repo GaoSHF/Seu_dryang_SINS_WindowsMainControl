@@ -409,5 +409,177 @@ double white()
 	return(EGx);
 }
 
+double det(double *a, int n)     //20180116
+{
+	double sum = 0, sum1, sum2 = 0, b = 1;
+	int k,i,c;
+	sum1 = 0;
+	for (k = 0; k < n; k++)
+	{
+		for (i = 0; i < n; i++)
+		{
+			c = k + i;
+			if (c >= n)c = c - n;
+			b = b*(*(a + i*n + c));
+		}
+		sum1 = sum1 + b;
+		b = 1;
+	}
+	sum2 = 0;
+	for (k = 0; k < n; k++)
+	{
+		for (i = 0; i < n; i++)
+		{
+			c = k - i;
+			if (c < 0) c = c + n;
+			b = b*(*(a + i*n + c));
+		}
+		sum2 = sum2 + b;
+		b = 1;
+	}
+	sum = sum1 - sum2;
+	return sum;
+}
+
+/**
+* 高维矩阵求逆运算  3000维以内
+* @brief  mainv 矩阵求逆运算 a = inv(a)
+* @param  n 整型 表示矩阵维数m
+*         a 浮点指针 表示返回向量(m*m)
+* @retval None
+*/
+void mainv_3000(int n, double *a)
+{
+	int		i, j;
+	int		is[3000] = { 0 }, js[3000] = { 0 };
+	int		f = 1, k;
+	double	fDet = 1.0;
+
+	for (k = 0; k < n; k++)
+	{
+		/* 第一步，全选主元 */
+		double fMax = 0.0;
+		for (i = k; i < n; i++)
+		{
+			for (j = k; j < n; j++)
+			{
+				const double fm = fabs(*(a + i*n + j));
+				if (fm > fMax)
+				{
+					fMax = fm;
+					is[k] = i;
+					js[k] = j;
+				}
+			}
+		}
+
+		if (is[k] != k)
+		{
+			f = -f;
+			for (i = 0; i < n; i++)
+				jiaohuan((a + k*n + i), (a + is[k] * n + i));
+		}
+		if (js[k] != k)
+		{
+			f = -f;
+			for (i = 0; i < n; i++)
+				jiaohuan((a + i*n + k), (a + i*n + js[k]));
+		}
+
+		/* 计算行列值 */
+		fDet *= *(a + k*n + k);
+
+		/* 计算逆矩阵 */
+
+		/* 第二步 */
+		*(a + k*n + k) = 1.0 / *(a + k*n + k);
+
+		/* 第三步 */
+		for (j = 0; j < n; j++)
+		{
+			if (j != k)
+				*(a + k*n + j) *= *(a + k*n + k);
+		}
+		/* 第四步 */
+		for (i = 0; i < n; i++)
+		{
+			if (i != k)
+			{
+				for (j = 0; j < n; j++)
+				{
+					if (j != k)
+						*(a + i*n + j) = *(a + i*n + j) - *(a + i*n + k) * (*(a + k*n + j));
+				}
+			}
+		}
+		/* 第五步 */
+		for (i = 0; i < n; i++)
+		{
+			if (i != k)
+				*(a + i*n + k) *= -*(a + k*n + k);
+		}
+	}
+
+	for (k = n - 1; k >= 0; k--)
+	{
+		if (js[k] != k)
+		{
+			for (i = 0; i < n; i++)
+				jiaohuan((a + k*n + i), (a + js[k] * n + i));
+		}
+		if (is[k] != k)
+		{
+			for (i = 0; i < n; i++)
+				jiaohuan((a + i*n + k), (a + i*n + is[k]));
+		}
+	}
+	fDet *= f;
+}
+
+/**
+* 高维矩阵相乘运算  3000维以内    a,b,c必须是不同数组
+* @brief  mamul 矩阵相乘运算 a(m,n) = b(m,p) * c(p,n)
+* @param  n1 整型 表示矩阵维数m
+*         n2 整型 表示矩阵维数p
+*         n3 整型 表示矩阵维数n
+*         a 浮点指针 表示返回向量(m,n)
+*         b 浮点指针 表示输入矩阵(m,p)
+*         c 浮点指针 表示输入向量(p,n)
+* @retval None
+*/
+void mamul_3000(int n1, int n2, int n3, double *a, double *b, double *c)
+{
+	double d;
+	int i, j, k;
+
+	for (i = 0; i<n1; i++)
+	for (j = 0; j<n3; j++)
+	{
+		d = 0.0;
+		for (k = 0; k<n2; k++)
+			d += *(b + i*n2 + k)*(*(c + k*n3 + j));
+
+		*(a + i*n3 + j) = d;
+	}
+		
+}
+
+//void mamul_3000(int n1, int n2, int n3, double *a, double *b, double *c)
+//{
+//	double d[3000][3000];
+//	int i, j, k;
+//
+//	for (i = 0; i<n1; i++)
+//	for (j = 0; j<n3; j++)
+//	{
+//		d[i][j] = 0.0;
+//		for (k = 0; k<n2; k++)
+//			d[i][j] += *(b + i*n2 + k)*(*(c + k*n3 + j));
+//	}
+//
+//	for (i = 0; i<n1; i++)
+//	for (j = 0; j<n3; j++)
+//		*(a + i*n3 + j) = d[i][j];
+//}
 /* End ----------------------------------------------------------------------*/
 

@@ -591,14 +591,14 @@ void S2g()
 }
 //横向导航解算方法
 /**********************************************横向捷联解算*****************************************/
-void sinscal_TRANSVERSE(SYS_ELEMENTtransverse &inforS, double quart_del, double gyro[2][3])
+void sinscal_TRANSVERSE(SYS_ELEMENTtransverse &inforS, double quart_del, double gyro[2][3])  //20180319修改，一些中间量保存至结构体
 {
 	double cla2, clo2;
-	double	gi, g, RMh, RNh, Rx_1, Ry_1, t_1;
+	double	gi, g, RMh, RNh;
 	int i;
 	double dlati, dlongi, temp, temp2;
 	double sita[3];
-	double wis_s[3], wis_b[3], wsb_b[2][3];
+	double wis_b[3], wsb_b[2][3];
 	double fw[3];
 	static bool isfirst = 0;
 	if (isfirst == 0)      //仅在此函数中判断与更新，即第一秒发挥初始赋值的作用
@@ -616,26 +616,34 @@ void sinscal_TRANSVERSE(SYS_ELEMENTtransverse &inforS, double quart_del, double 
 	g = 9.7803267714 * (1 + 0.00193185138639 * cla2 * clo2) / gi;
 	//
 	temp = (1 - E2* cla2* clo2); temp2 = sqrt(temp);
-	RMh = RE*(1 - AEE*AEE) / temp / temp2 + inforS.high_S;
+	RMh = RE*(1 - E2) / temp / temp2 + inforS.high_S;//20180319修改
 	RNh = RE / temp2 + inforS.high_S;
 	inforS.P = atan2(sin(inforS.longi_S), -sin(inforS.lati_S)*cos(inforS.longi_S));
-	t_1 = (1 / RMh - 1 / RNh)*sin(inforS.P)*cos(inforS.P);
-	Rx_1 = sin(inforS.P)*sin(inforS.P) / RMh + cos(inforS.P)*cos(inforS.P) / RNh;
-	Ry_1 = sin(inforS.P)*sin(inforS.P) / RNh + cos(inforS.P)*cos(inforS.P) / RMh;
+	inforS.t_1 = (1 / RMh - 1 / RNh)*sin(inforS.P)*cos(inforS.P);
+	inforS.Rx_1 = sin(inforS.P)*sin(inforS.P) / RMh + cos(inforS.P)*cos(inforS.P) / RNh;
+	inforS.Ry_1 = sin(inforS.P)*sin(inforS.P) / RNh + cos(inforS.P)*cos(inforS.P) / RMh;
 
-	dlati = -inforS.vel_S[0] * t_1 + inforS.vel_S[1] * Ry_1;
-	dlongi = inforS.vel_S[0] * Rx_1 / cos(inforS.lati_S) - inforS.vel_S[1] * t_1 / cos(inforS.lati);
+	dlati = -inforS.vel_S[0] * inforS.t_1 + inforS.vel_S[1] * inforS.Ry_1;
+	dlongi = inforS.vel_S[0] * inforS.Rx_1 / cos(inforS.lati_S) - inforS.vel_S[1] * inforS.t_1 / cos(inforS.lati_S);
 	//
-	wis_s[0] = -WIE * sin(inforS.longi_S) - dlati;
-	wis_s[1] = -WIE * sin(inforS.lati_S) * cos(inforS.longi_S) + dlongi * cos(inforS.lati_S);
-	wis_s[2] = WIE * cos(inforS.lati_S) * cos(inforS.longi_S) + dlongi * sin(inforS.lati_S);
+	inforS.wie_s[0] = -WIE * sin(inforS.longi_S);
+	inforS.wie_s[1] = -WIE * sin(inforS.lati_S) * cos(inforS.longi_S);
+	inforS.wie_s[2] = WIE * cos(inforS.lati_S) * cos(inforS.longi_S);
 
-	vecmul(3, 3, wis_b, (double *)inforS.csb_mat, wis_s);
+	inforS.wis_s[0] = inforS.wie_s[0] - dlati;
+	inforS.wis_s[1] = inforS.wie_s[1] + dlongi * cos(inforS.lati_S);
+	inforS.wis_s[2] = inforS.wie_s[2] + dlongi * sin(inforS.lati_S);
+
+	vecmul(3, 3, wis_b, (double *)inforS.csb_mat, inforS.wis_s);
 	for (i = 0; i < 2; i++)
 		vecsub(3, wsb_b[i], gyro[i], wis_b);
-
-	vecadd(3, sita, wsb_b[0], wsb_b[1]);
+//梯形算法
+	//vecadd(3, sita, wsb_b[0], wsb_b[1]);
+	//avecmul(3, sita, sita, quart_del / 2.0);
+//矩形算法（matlab）
+	vecadd(3, sita, wsb_b[1], wsb_b[1]);
 	avecmul(3, sita, sita, quart_del / 2.0);
+
 	qcal(sita, inforS.quart_S);
 	optq(inforS.quart_S);
 	q2cnb(inforS.csb_mat, inforS.quart_S);
@@ -645,9 +653,9 @@ void sinscal_TRANSVERSE(SYS_ELEMENTtransverse &inforS, double quart_del, double 
 	maturn(3, 3, (double*)inforS.cbs_mat, (double*)inforS.csb_mat);
 	vecmul(3, 3, inforS.acce_S, (double*)inforS.cbs_mat, inforS.acce_b);
 
-	fw[0] = -2 * WIE * sin(inforS.longi_S) - dlati;
-	fw[1] = -2 * WIE * sin(inforS.lati_S) * cos(inforS.longi_S) + dlongi * cos(inforS.lati_S);
-	fw[2] = 2 * WIE * cos(inforS.lati_S) * cos(inforS.longi_S) + dlongi * sin(inforS.lati_S);
+	fw[0] = inforS.wie_s[0] + inforS.wis_s[0];
+	fw[1] = inforS.wie_s[1] + inforS.wis_s[1];
+	fw[2] = inforS.wie_s[2] + inforS.wis_s[2];
 
 	inforS.dvel_S[0] = inforS.acce_S[0] + fw[2] * inforS.vel_S[1] - fw[1] * inforS.vel_S[2];
 	inforS.dvel_S[1] = inforS.acce_S[1] - fw[2] * inforS.vel_S[0] + fw[0] * inforS.vel_S[2];
@@ -662,6 +670,11 @@ void sinscal_TRANSVERSE(SYS_ELEMENTtransverse &inforS, double quart_del, double 
 
 	//将解得的横向导航参数转换到传统地理坐标系中
 	S2g();
+	//将横向导航结果赋给infor，用于显示；
+	infor.att_angle[0] = inforS.att_angle[0]; infor.att_angle[1] = inforS.att_angle[1]; infor.att_angle[2] = inforS.att_angle[2];
+	ang2cnb(infor.cnb_mat, infor.att_angle);
+	infor.vel_n[0] = inforS.vel_n[0]; infor.vel_n[1] = inforS.vel_n[1]; infor.vel_n[2] = inforS.vel_n[2];
+	infor.pos[0] = inforS.lati; infor.pos[1] = inforS.longi; infor.pos[2] = inforS.high;
 }
 /**********************************************横向捷联解算*****************************************/
 #pragma endregion Transverse

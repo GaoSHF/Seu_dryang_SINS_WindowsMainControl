@@ -15,6 +15,12 @@ CALIPMT calipara;//标定参数
 SKALMAN_15_3 fkalman;                     //yyq精对准kalman对象    //20171108 
 SKALMAN_15_3 nkalman;                     //导航（非对准阶段）开始的kalman对象 //20171128 
 SKALMAN_16_3 kalman_dvl;                     //导航（非对准阶段）开始的16维kalman对象 //20171128 
+SKALMAN_16_3 kalman_dvl_transverse;			 //导航（非对准阶段）开始的横向坐标系下16维kalman对象 //20180319
+SKALMAN_19_6 dvlkalman;                     //INS/DVL子滤波器
+SKALMAN_15_1 cmpkalman;                     //INS/Cmp子滤波器
+SKALMAN_15_1 depkalman;                     //INS/Cmp子滤波器
+SKALMAN_15_3 zupkalman;                     //ZUPT 子滤波器
+SDVLCmpDepth dObserver;                     //水下组合导航外信息结构体对象 //20180116 
 ZTPARA ZT;
 INSCAL INScal;
 FOSN fosn;
@@ -319,19 +325,19 @@ void Kal_Init_P_16(SKALMAN_16_3& temp_kal)              //   20171128
 {
 	memset(temp_kal.P_matrix, 0, sizeof(temp_kal.P_matrix));
 
-	temp_kal.P_matrix[0][0] = powl(1, 2);
+	temp_kal.P_matrix[0][0] = powl(0.1, 2);
 	temp_kal.P_matrix[1][1] = temp_kal.P_matrix[0][0];
 	temp_kal.P_matrix[2][2] = temp_kal.P_matrix[0][0];
 
-	temp_kal.P_matrix[3][3] = powl(1 * D2R, 2);
+	temp_kal.P_matrix[3][3] = powl(0.01 * D2R, 2);
 	temp_kal.P_matrix[4][4] = temp_kal.P_matrix[3][3];
-	temp_kal.P_matrix[5][5] = powl(10 * D2R, 2);
+	temp_kal.P_matrix[5][5] = powl(0.1 * D2R, 2);
 
 	temp_kal.P_matrix[6][6] = powl(10.0 / RE, 2);
 	temp_kal.P_matrix[7][7] = temp_kal.P_matrix[6][6];
 	temp_kal.P_matrix[8][8] = powl(5, 2);
 
-	temp_kal.P_matrix[9][9] = powl(1000 * ug, 2);
+	temp_kal.P_matrix[9][9] = powl(100 * ug, 2);
 	temp_kal.P_matrix[10][10] = temp_kal.P_matrix[9][9];
 	temp_kal.P_matrix[11][11] = temp_kal.P_matrix[9][9];
 
@@ -347,19 +353,200 @@ void Kal_Init_P_16(SKALMAN_16_3& temp_kal)              //   20171128
 	temp_kal.Q_state[1][1] = temp_kal.Q_state[0][0];
 	temp_kal.Q_state[2][2] = temp_kal.Q_state[0][0];
 
-	temp_kal.Q_state[3][3] = powl(0.02*dph, 2);
+	temp_kal.Q_state[3][3] = powl(0.01*dph, 2);
 	temp_kal.Q_state[4][4] = temp_kal.Q_state[3][3];
 	temp_kal.Q_state[5][5] = temp_kal.Q_state[3][3];
 
 	memset(temp_kal.R_measure, 0, sizeof(temp_kal.R_measure));
 
-	temp_kal.R_measure[0][0] = powl(0.2, 2);
-	temp_kal.R_measure[1][1] = powl(0.2, 2);
-	temp_kal.R_measure[2][2] = powl(0.2, 2);
+	temp_kal.R_measure[0][0] = powl(0.1, 2);
+	temp_kal.R_measure[1][1] = powl(0.1, 2);
+	temp_kal.R_measure[2][2] = powl(0.1, 2);
 
 	memset(temp_kal.H_matrix, 0, sizeof(temp_kal.H_matrix));
 	memset(temp_kal.X_vector, 0, sizeof(temp_kal.X_vector));
 
+}
+//INS/DVL_19维初始化函数
+void Kal_Init_DVL_19 (SKALMAN_19_6& temp_kal)              //   20180116
+{
+	memset(temp_kal.P_matrix, 0, sizeof(temp_kal.P_matrix));
+
+	temp_kal.P_matrix[0][0] = powl(0.1, 2);
+	temp_kal.P_matrix[1][1] = temp_kal.P_matrix[0][0];
+	temp_kal.P_matrix[2][2] = temp_kal.P_matrix[0][0];
+
+	temp_kal.P_matrix[3][3] = powl(0.01 * D2R, 2);
+	temp_kal.P_matrix[4][4] = temp_kal.P_matrix[3][3];
+	temp_kal.P_matrix[5][5] = powl(0.1 * D2R, 2);
+
+	temp_kal.P_matrix[6][6] = powl(10.0 / RE, 2);
+	temp_kal.P_matrix[7][7] = temp_kal.P_matrix[6][6];
+	temp_kal.P_matrix[8][8] = powl(10, 2);
+
+	temp_kal.P_matrix[9][9] = powl(100 * ug, 2);
+	temp_kal.P_matrix[10][10] = temp_kal.P_matrix[9][9];
+	temp_kal.P_matrix[11][11] = temp_kal.P_matrix[9][9];
+
+	temp_kal.P_matrix[12][12] = powl(0.02*dph, 2);
+	temp_kal.P_matrix[13][13] = temp_kal.P_matrix[12][12];
+	temp_kal.P_matrix[14][14] = temp_kal.P_matrix[12][12];
+
+	temp_kal.P_matrix[15][15] = powl(0., 2);   //DVL 刻度因子参数
+
+	temp_kal.P_matrix[16][16] = powl(5, 2);   //水流速度
+	temp_kal.P_matrix[17][17] = powl(5, 2);   //水流速度
+	temp_kal.P_matrix[18][18] = powl(5, 2);   //水流速度
+
+
+	memset(temp_kal.Q_state, 0, sizeof(temp_kal.Q_state));
+
+	temp_kal.Q_state[0][0] = powl(50 * ug, 2);
+	temp_kal.Q_state[1][1] = temp_kal.Q_state[0][0];
+	temp_kal.Q_state[2][2] = temp_kal.Q_state[0][0];
+
+	temp_kal.Q_state[3][3] = powl(0.01*dph, 2);
+	temp_kal.Q_state[4][4] = temp_kal.Q_state[3][3];
+	temp_kal.Q_state[5][5] = temp_kal.Q_state[3][3];
+
+	temp_kal.Q_state[16][16] = powl(0.0001, 2);
+	temp_kal.Q_state[17][17] = temp_kal.Q_state[16][16];
+	temp_kal.Q_state[18][18] = temp_kal.Q_state[16][16];
+
+	memset(temp_kal.R_measure, 0, sizeof(temp_kal.R_measure));
+
+	temp_kal.R_measure[0][0] = powl(0.1, 2);  //IMM 时，R初值没用。
+	temp_kal.R_measure[1][1] = powl(0.1, 2);
+	temp_kal.R_measure[2][2] = powl(0.1, 2);
+	temp_kal.R_measure[3][3] = powl(0.1, 2);  
+	temp_kal.R_measure[4][4] = powl(0.1, 2);
+	temp_kal.R_measure[5][5] = powl(0.1, 2);
+
+	memset(temp_kal.H_matrix, 0, sizeof(temp_kal.H_matrix));
+	memset(temp_kal.X_vector, 0, sizeof(temp_kal.X_vector));
+
+}
+//INS/Cmp 15维初始化函数
+void Kal_Init_Cmp_15(SKALMAN_15_1& temp_kal)              //20180116
+{
+	memset(temp_kal.P_matrix, 0, sizeof(temp_kal.P_matrix));
+
+	temp_kal.P_matrix[0][0] = powl(0.1, 2);
+	temp_kal.P_matrix[1][1] = temp_kal.P_matrix[0][0];
+	temp_kal.P_matrix[2][2] = temp_kal.P_matrix[0][0];
+
+	temp_kal.P_matrix[3][3] = powl(0.01 * D2R, 2);
+	temp_kal.P_matrix[4][4] = temp_kal.P_matrix[3][3];
+	temp_kal.P_matrix[5][5] = powl(0.1 * D2R, 2);
+
+	temp_kal.P_matrix[6][6] = powl(10.0 / RE, 2);
+	temp_kal.P_matrix[7][7] = temp_kal.P_matrix[6][6];
+	temp_kal.P_matrix[8][8] = powl(10, 2);
+
+	temp_kal.P_matrix[9][9] = powl(100 * ug, 2);
+	temp_kal.P_matrix[10][10] = temp_kal.P_matrix[9][9];
+	temp_kal.P_matrix[11][11] = temp_kal.P_matrix[9][9];
+
+	temp_kal.P_matrix[12][12] = powl(0.02*dph, 2);
+	temp_kal.P_matrix[13][13] = temp_kal.P_matrix[12][12];
+	temp_kal.P_matrix[14][14] = temp_kal.P_matrix[12][12];
+
+	memset(temp_kal.Q_state, 0, sizeof(temp_kal.Q_state));
+
+	temp_kal.Q_state[0][0] = powl(50 * ug, 2);        
+	temp_kal.Q_state[1][1] = temp_kal.Q_state[0][0];
+	temp_kal.Q_state[2][2] = temp_kal.Q_state[0][0];
+
+	temp_kal.Q_state[3][3] = powl(0.01*dph, 2);
+	temp_kal.Q_state[4][4] = temp_kal.Q_state[3][3];
+	temp_kal.Q_state[5][5] = temp_kal.Q_state[3][3];
+
+	memset(temp_kal.R_measure, 0, sizeof(temp_kal.R_measure));
+	temp_kal.R_measure[0][0] = powl(0.01, 2);  
+	memset(temp_kal.H_matrix, 0, sizeof(temp_kal.H_matrix));
+	memset(temp_kal.X_vector, 0, sizeof(temp_kal.X_vector));
+}
+//INS/Depth 15维初始化函数
+void Kal_Init_Depth_15(SKALMAN_15_1& temp_kal)              //20180116
+{
+	memset(temp_kal.P_matrix, 0, sizeof(temp_kal.P_matrix));
+
+	temp_kal.P_matrix[0][0] = powl(0.1, 2);
+	temp_kal.P_matrix[1][1] = temp_kal.P_matrix[0][0];
+	temp_kal.P_matrix[2][2] = temp_kal.P_matrix[0][0];
+
+	temp_kal.P_matrix[3][3] = powl(0.01 * D2R, 2);
+	temp_kal.P_matrix[4][4] = temp_kal.P_matrix[3][3];
+	temp_kal.P_matrix[5][5] = powl(0.1 * D2R, 2);
+
+	temp_kal.P_matrix[6][6] = powl(10.0 / RE, 2);
+	temp_kal.P_matrix[7][7] = temp_kal.P_matrix[6][6];
+	temp_kal.P_matrix[8][8] = powl(10, 2);
+
+	temp_kal.P_matrix[9][9] = powl(100 * ug, 2);
+	temp_kal.P_matrix[10][10] = temp_kal.P_matrix[9][9];
+	temp_kal.P_matrix[11][11] = temp_kal.P_matrix[9][9];
+
+	temp_kal.P_matrix[12][12] = powl(0.02*dph, 2);
+	temp_kal.P_matrix[13][13] = temp_kal.P_matrix[12][12];
+	temp_kal.P_matrix[14][14] = temp_kal.P_matrix[12][12];
+
+	memset(temp_kal.Q_state, 0, sizeof(temp_kal.Q_state));
+
+	temp_kal.Q_state[0][0] = powl(50 * ug, 2);         
+	temp_kal.Q_state[1][1] = temp_kal.Q_state[0][0];
+	temp_kal.Q_state[2][2] = temp_kal.Q_state[0][0];
+
+	temp_kal.Q_state[3][3] = powl(0.01*dph, 2);
+	temp_kal.Q_state[4][4] = temp_kal.Q_state[3][3];
+	temp_kal.Q_state[5][5] = temp_kal.Q_state[3][3];
+
+	memset(temp_kal.R_measure, 0, sizeof(temp_kal.R_measure));
+	temp_kal.R_measure[0][0] = powl(0.1, 2);
+	memset(temp_kal.H_matrix, 0, sizeof(temp_kal.H_matrix));
+	memset(temp_kal.X_vector, 0, sizeof(temp_kal.X_vector));
+}
+//INS/ZUPT 15维初始化函数
+void Kal_Init_ZUPT_15(SKALMAN_15_3& temp_kal)              //20180116
+{
+	memset(temp_kal.P_matrix, 0, sizeof(temp_kal.P_matrix));
+
+	temp_kal.P_matrix[0][0] = powl(0.1, 2);
+	temp_kal.P_matrix[1][1] = temp_kal.P_matrix[0][0];
+	temp_kal.P_matrix[2][2] = temp_kal.P_matrix[0][0];
+
+	temp_kal.P_matrix[3][3] = powl(0.01 * D2R, 2);
+	temp_kal.P_matrix[4][4] = temp_kal.P_matrix[3][3];
+	temp_kal.P_matrix[5][5] = powl(0.1 * D2R, 2);
+
+	temp_kal.P_matrix[6][6] = powl(10.0 / RE, 2);
+	temp_kal.P_matrix[7][7] = temp_kal.P_matrix[6][6];
+	temp_kal.P_matrix[8][8] = powl(10, 2);
+
+	temp_kal.P_matrix[9][9] = powl(100 * ug, 2);
+	temp_kal.P_matrix[10][10] = temp_kal.P_matrix[9][9];
+	temp_kal.P_matrix[11][11] = temp_kal.P_matrix[9][9];
+
+	temp_kal.P_matrix[12][12] = powl(0.02*dph, 2);
+	temp_kal.P_matrix[13][13] = temp_kal.P_matrix[12][12];
+	temp_kal.P_matrix[14][14] = temp_kal.P_matrix[12][12];
+
+	memset(temp_kal.Q_state, 0, sizeof(temp_kal.Q_state));
+
+	temp_kal.Q_state[0][0] = powl(50 * ug, 2);
+	temp_kal.Q_state[1][1] = temp_kal.Q_state[0][0];
+	temp_kal.Q_state[2][2] = temp_kal.Q_state[0][0];
+
+	temp_kal.Q_state[3][3] = powl(0.01*dph, 2);
+	temp_kal.Q_state[4][4] = temp_kal.Q_state[3][3];
+	temp_kal.Q_state[5][5] = temp_kal.Q_state[3][3];
+
+	memset(temp_kal.R_measure, 0, sizeof(temp_kal.R_measure));
+	temp_kal.R_measure[0][0] = powl(0.05, 2);  
+	temp_kal.R_measure[1][1] = powl(0.05, 2);
+	temp_kal.R_measure[2][2] = powl(10, 2);
+	memset(temp_kal.H_matrix, 0, sizeof(temp_kal.H_matrix));
+	memset(temp_kal.X_vector, 0, sizeof(temp_kal.X_vector));
 }
 //设备程序用的kalman滤波初始化
 void kalinitial()

@@ -91,6 +91,9 @@ bool temp_test = true;
 double temp_ang[3], temp_pos[3], temp_v[3];
 #pragma endregion VarDef 
 
+//  AI  20180124
+double omega[1899][1899];
+
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
 class CAboutDlg : public CDialogEx
 {
@@ -490,6 +493,14 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnStartcal()
 		case NAVI_VEL:case NAVI_PHINS_VEL1: Kal_Init_P_15(nkalman,YA_VEL); break; //20171128  导航阶段的kalman对象与精对准不用同一个
 		case NAVI_PHINS_VEL2: Kal_Init_P_16(kalman_dvl); break;      //20171128 Vb组合的H阵初始值设0，需要实时更新。
 		case NAVI_VELANDAZ:Kal_Init_P_15(nkalman,YA_VELANDAZ); break;  //20171128  导航阶段的kalman对象与精对准不用同一个
+		case NAVI_DVL_Cmp_Depth: Kal_Init_DVL_19(dvlkalman); 
+								 Kal_Init_Cmp_15(cmpkalman);
+			                     Kal_Init_Depth_15(depkalman); Kal_Init_ZUPT_15(zupkalman);  //20180115 
+								 CWinThread* AI_Thread;
+								 if (!(AI_Thread = AfxBeginThread(AI_TrainingThread, NULL)))
+									 return;
+								 break;
+		case NAVI_VELb_transverse: Kal_Init_P_16(kalman_dvl_transverse); break;      //20180319 Vb组合的H阵初始值设0，需要实时更新。
 
 		default: break;
 		}
@@ -791,12 +802,6 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnCalibration()
 		calipara.bias_gyro[1] = -7.373e-8;
 		calipara.bias_gyro[2] = -2.4168e-9;
 		
-		//calipara.Ea_ang[0] = 1.3127e-04;//xy
-		//calipara.Ea_ang[1] = 6.30997e-06;//yx
-		//calipara.Ea_ang[2] = 4.0842e-05;//yz
-		//calipara.Ea_ang[3] = 9.1177e-05;//zy
-		//calipara.Ea_ang[4] = 7.3808e-04;//xz
-		//calipara.Ea_ang[5] = -4.9906e-04;//zx
 		calipara.Ea_ang[0] = 1.3127e-04;//xy
 		calipara.Ea_ang[1] = 6.3079e-06;//yx
 		calipara.Ea_ang[2] = 4.0829e-05;//yz
@@ -807,8 +812,8 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnCalibration()
 		calipara.Ca[1] = 1.00033;
 		calipara.Ca[2] = 1.000253;
 		calipara.bias_acce[0] = -0.01076;
-		calipara.bias_acce[1] = -0.005657;
-		calipara.bias_acce[2] = -0.006042;
+		calipara.bias_acce[1] = -0.005655;// 
+		calipara.bias_acce[2] = -0.006040;//模型与matlab稍有不同
 		calipara.Eang2mat();
 		if (!is_UpdateData)
 			OnBnClickedBtnStoprefresh();
@@ -915,8 +920,8 @@ void CWindowsMainControlV1Dlg::init_mainmode()
 {
 	if (MAINMODE == 1)
 	{
-		m_NaviMode.SetCurSel(0);
-		m_HeightMode.SetCurSel(0);
+		//m_NaviMode.SetCurSel(0);
+		//m_HeightMode.SetCurSel(0);
 		edit_data_f = 200;
 		UpdateData(false);
 	}
@@ -995,8 +1000,8 @@ bool CWindowsMainControlV1Dlg::init_Combo()
 	}
 	m_FineAignMode.SetCurSel(0);
 
-	CString str4[] = { _T("仅纯惯性"),_T("速度+航向"),_T("速度+位置+姿态(没写)"),_T("GPS位置组合"),_T("GPS速度组合(没写)"),_T("haishi组合"),_T("haishi降噪"),_T("PS位置组合"),_T("PS速度组合n"),_T("PS速度组合b"),_T("b系速度 + 航向(没写)") };
-	for (i = 0; i < 11; i++)
+	CString str4[] = { _T("仅纯惯性"), _T("速度+航向"), _T("速度+位置+姿态(没写)"), _T("GPS位置组合"), _T("GPS速度组合(没写)"), _T("haishi组合"), _T("haishi降噪"), _T("PS位置组合"), _T("PS速度组合n"), _T("PS速度组合b"), _T("b系速度 + 航向(没写)"), _T("INS/DVL/Cmp/Depth"),_T("横向导航INS/DVL") };
+	for (i = 0; i < 13; i++)
 	{
 		judge_tf = m_NaviMode.InsertString(i, str4[i]);
 		if ((judge_tf == CB_ERR) || (judge_tf == CB_ERRSPACE))
@@ -1005,7 +1010,7 @@ bool CWindowsMainControlV1Dlg::init_Combo()
 			return false;
 		}
 	}
-	m_NaviMode.SetCurSel(5);
+	m_NaviMode.SetCurSel(12);
 
 	CString str5[] = { _T("无阻尼"),_T("有阻尼（暂无）"),_T("旋转矢量法"),_T("横向导航"),_T("haishi炮位") ,_T("haishi雷达位") ,_T("haishi无杆臂") };
 	for (i = 0; i < 7; i++)
@@ -1017,7 +1022,7 @@ bool CWindowsMainControlV1Dlg::init_Combo()
 			return false;
 		}
 	}
-	m_HeightMode.SetCurSel(3);
+	m_HeightMode.SetCurSel(0);
 
 	CString str6[] = { _T("转台实验"),_T("车载实验"),_T("纯录数（不含phins）"),_T("纯录数（含phins）"),_T("备用1"),_T("备用2"),_T("读数仿真"),_T("模拟数据仿真") };
 	for (i = 0; i < 8; i++)
@@ -1482,6 +1487,27 @@ void CWindowsMainControlV1Dlg::getfileData()
 				infor.vel_n[0] = phins.vel[0];       //20171129
 				infor.vel_n[1] = phins.vel[1];
 				infor.vel_n[2] = phins.vel[2];
+
+				infor.pos[0] = 0.554063613229637;   //tiaoshi  20180319
+				infor.pos[1] = 2.07493808800753;
+				infor.pos[2] = 11.1237709905626;
+				initial_latitude = infor.pos[0] * R2D;
+				initial_longitude = infor.pos[1] * R2D;
+				initial_height = infor.pos[2];
+				infor.vel_n[0] = 16.6778559295617;
+				infor.vel_n[1] = 10.4079830936104;
+				infor.vel_n[2] = 0.0160282909353292;
+
+				//infor.pos[0] = 0.556467941179831;   //tiaoshi  20180121
+				//infor.pos[1] = 2.07370891607559;
+				//infor.pos[2] = 14.1436185627926;
+				//initial_latitude = infor.pos[0] * R2D;
+				//initial_longitude = infor.pos[1] * R2D;
+				//initial_height = infor.pos[2];
+				//infor.vel_n[0] = -0.0103410603288724;
+				//infor.vel_n[1] = -0.00274300806378672;
+				//infor.vel_n[2] = 0.0415866903279695;
+
 			}
 			if (RS_para.file_mode == 7)
 			{				
@@ -1507,6 +1533,15 @@ void CWindowsMainControlV1Dlg::getfileData()
 			infor.att_angle[0] = ZT.ang[0] *D2R;
 			infor.att_angle[1] = ZT.ang[1] *D2R;
 			infor.att_angle[2] = ZT.ang[2] *D2R;
+
+			infor.att_angle[0] = -0.00744499031702869;  //tiaoshi  20180319
+			infor.att_angle[1] = 0.0148067144249400;
+			infor.att_angle[2] = -0.997169906367130;
+
+			//infor.att_angle[0] = -0.000413888748387028;  //tiaoshi  20180121
+			//infor.att_angle[1] = 0.0159994623333727;
+			//infor.att_angle[2] = 0.0852861948607934;
+
 			ang2cnb(infor.cnb_mat, infor.att_angle);
 			cnb2q(infor.cnb_mat, infor.quart);
 			optq(infor.quart);
@@ -1689,6 +1724,23 @@ void CWindowsMainControlV1Dlg::SaveData()
 					INScal.pos[0], INScal.pos[1], INScal.pos[2],
 					kalman_dvl.X_vector[9], kalman_dvl.X_vector[10], kalman_dvl.X_vector[11],
 					kalman_dvl.X_vector[12], kalman_dvl.X_vector[13], kalman_dvl.X_vector[14], kalman_dvl.X_vector[15]);
+				fflush(fid_Cal);
+				return;
+			}
+			if (NaviModeNum == NAVI_DVL_Cmp_Depth)
+			{
+				double AA,BB;
+				AA=sqrt(dObserver.R1_esti[3][3]);
+				BB = dObserver.lamda;
+				fprintf_s(fid_Cal, "%lf,,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf\n",
+					fosn.time,
+					dvlkalman.X_vector[16], dvlkalman.X_vector[17], dvlkalman.X_vector[18],
+					dObserver.V_c_n[0], dObserver.V_c_n[1], dObserver.V_c_n[2],
+					INScal.ang[0], INScal.ang[1], INScal.ang[2],
+					INScal.vel[0], INScal.vel[1], INScal.vel[2],
+					INScal.pos[0], INScal.pos[1], INScal.pos[2],
+					dObserver.u[0], dObserver.u[1], dObserver.u[2],
+					AA, BB, kalman_dvl.X_vector[14], dvlkalman.X_vector[15]);
 				fflush(fid_Cal);
 				return;
 			}
@@ -1959,8 +2011,11 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 	double tempob_att[3] = { 0 };//姿态观测量
 	double gyro[2][3] = { 0 };
 	double cnb_phins[3][3] = { 0 };//用来存放phins的Cnb,INS/DVL组合用
-	double fix_err[3] = {0.0*D2R,0*D2R,0*D2R}, Cpb[3][3] = { 0 };
+	double fix_err[3] = { 0.016479*D2R, 0.010986 * D2R, -0.10437* D2R }, Cpb[3][3] = { 0 }; 
 	double delta_v[3]= {0};
+	double V_c_b[3] = { 0 };//用来存放临时变量——b系下水流速度
+	double DVL_ERR=0,cnb_true[3][3],angle_true[3];
+
 	ang2cnb(Cpb, fix_err);   //p（phins系）为下标
 
 	if (!sysc.f_navi_over&&sysc.f_coarse_over&&sysc.f_fine_over)
@@ -2002,7 +2057,7 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 				}
 				for (int i = 0; i<3; i++) inforS.acce_b[i] = infor.acce_b[i];
 				sinscal_TRANSVERSE(inforS, sysc.Ts, gyro); //20171213 需要先解算横向，再解算传统算法，否则后者影响前者初值。
-				sinscal_zundamp(sysc.Ts);
+			//	sinscal_zundamp(sysc.Ts);
 				sysc.state = _T("横向纯惯性");
 				break;
 			case PURE_SINS_HAISHI_P:
@@ -2084,6 +2139,84 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 				navi_Kal_16_3(kalman_dvl, tempob); 
 				sysc.state = _T("计程仪速度组合");
 				break;
+			case NAVI_DVL_Cmp_Depth:                           //20180115	
+				if (0 == sysc.data_cnt % (sysc.Fs / sysc.Kal_fr)) //如果到1s了，对所有外部观测量进行更新
+				{
+					//DVL对地速度
+					avecmul(3, tempob_v, phins.ang, D2R);
+					ang2cnb(cnb_phins, tempob_v);
+					vecmul(3, 3, phins.vel_b, (double*)cnb_phins, phins.vel);
+					avecmul(3, tempob_v, phins.vel_b, dObserver.K);//乘以刻度因子
+					vecmul(3, 3, dObserver.DVL_d, (double*)Cpb, tempob_v); //DVL对地速度
+
+
+			//加信息突变型、噪声突变型误差
+					int NN = 1540; //根据是否进行精对准设置，sysc.cnt_s对应的秒数不一样，用NN控制
+					dObserver.DVL_ERR = 0;//重要！！！！！
+					//if (sysc.cnt_s > (1800-NN) && sysc.cnt_s<=(2000-NN))
+					//{
+					//	dObserver.DVL_ERR = 2;
+					//}
+					//else
+					//{
+					//	if (sysc.cnt_s>(2300-NN) && sysc.cnt_s <=(2800-NN))
+					//	{
+					//		dObserver.DVL_ERR = 0 * white();
+					//	}
+					//	else if (sysc.cnt_s>(3000-NN) && sysc.cnt_s <=(3200-NN))
+					//	{
+					//		dObserver.DVL_ERR = 2; 
+					//	}
+				 //   }
+			//设置DVL工作模式
+					dObserver.flag_DVL = 2;
+					if (sysc.cnt_s > (1700-NN) && sysc.cnt_s <= (3200-NN))   /////根据是否进行精对准设置，sysc.cnt_s对应的秒数不一样
+					{
+						dObserver.flag_DVL = 3;
+					}
+					//else if (sysc.cnt_s > 2200 && sysc.cnt_s <= 2500)dObserver.flag_DVL = 2;
+					//else if (sysc.cnt_s > 2500 && sysc.cnt_s <= 2900)dObserver.flag_DVL = 3;
+
+			//测试AI
+					//dObserver.flag_DVL = 2; //强制在模式2
+					//if (sysc.cnt_s > (4600-1600) && sysc.cnt_s <= (5100-1600))   /////根据是否进行精对准设置，sysc.cnt_s对应的秒数不一样
+					//{
+					//	dObserver.flag_DVL = 3;
+					//}
+
+					dObserver.DVL_d[0] = dObserver.DVL_d[0] + dObserver.DVL_ERR;
+					dObserver.DVL_d[1] = dObserver.DVL_d[1] + dObserver.DVL_ERR;
+					dObserver.DVL_d[2] = dObserver.DVL_d[2] + dObserver.DVL_ERR;//DVL对地速度 加噪声
+					//水速更新
+					dObserver.V_c_n[0] = dObserver.V_c_n[0] + (-phins.vel[0] / dObserver.L*dObserver.V_c_n[0] + 0.000 * white()) * 1;
+					dObserver.V_c_n[1] = dObserver.V_c_n[1] + (-phins.vel[1] / dObserver.L*dObserver.V_c_n[1] + 0.000 * white()) * 1;
+					dObserver.V_c_n[2] = dObserver.V_c_n[2] + (-phins.vel[2] / dObserver.L*dObserver.V_c_n[2] + 0.000 * white()) * 1;
+					//DVL对水速度
+					vecmul(3, 3, tempob_v, (double*)cnb_phins, dObserver.V_c_n);
+					vecmul(3, 3, V_c_b, (double*)Cpb, tempob_v); //b系水速
+					avecmul(3, V_c_b, V_c_b, dObserver.K);//乘以刻度因子
+					vecsub(3, dObserver.DVL_c, dObserver.DVL_d, V_c_b);//DVL对水速度
+					//Cmp Depth值
+					dObserver.Depth = phins.pos[2];
+					mamul(3, 3, 3, (double*)cnb_true, (double*)Cpb, (double*)cnb_phins);
+					cnb2ang(cnb_true, angle_true);
+					dObserver.Cmp = angle_true[2];//0.1*D2R*white();
+				}
+
+				navi_DVL_Cmp_Depth(dvlkalman, cmpkalman, depkalman, zupkalman, dObserver);
+				sysc.state = _T("水下DVL_Cmp_Depth");
+				break;
+
+			case NAVI_VELb_transverse:    //20180319
+				avecmul(3, tempob_v, phins.ang, D2R);
+				ang2cnb(cnb_phins, tempob_v);
+				vecmul(3, 3, phins.vel_b, (double*)cnb_phins, phins.vel);
+				avecmul(3, tempob_v, phins.vel_b, 1.00);//乘以刻度因子
+				vecmul(3, 3, tempob, (double*)Cpb, tempob_v); //phins系速度转到fosn系
+				navi_Kal_16_3_transverse(kalman_dvl_transverse, tempob);
+				sysc.state = _T("计程仪速度组合");
+				break;
+
 			default:break;
 			}
 
@@ -2285,7 +2418,10 @@ UINT CWindowsMainControlV1Dlg::PHINSThread(LPVOID pParam)
 				{
 					infor.pos[0] = phins.pos[0] * D2R;
 					infor.pos[1] = phins.pos[1] * D2R;
-					infor.pos[2] = initial_height;
+					infor.pos[2] = phins.pos[2];
+					infor.vel_n[0] = phins.vel[0];
+					infor.vel_n[1] = phins.vel[1];
+					infor.vel_n[2] = phins.vel[2];
 					avecmul(3, infor.att_angle, phins.ang, D2R);
 					ang2cnb(infor.cnb_mat, infor.att_angle);
 					cnb2q(infor.cnb_mat, infor.quart);
@@ -2296,6 +2432,95 @@ UINT CWindowsMainControlV1Dlg::PHINSThread(LPVOID pParam)
 		}
 	}
 
+	return 0;
+}
+///AI training 线程
+UINT CWindowsMainControlV1Dlg::AI_TrainingThread(LPVOID pParam)
+{
+	static bool AIthread_start = true;
+	int i, j;
+	double output1[1899][1], output2[1899][1], output3[1899][1];
+	double AI_Input_i[12], AI_Input_j[12], temp[12], s1, s2, II[1899][1], II_transpose[1][1899];
+	double tmp2[1][1899], tmp3[1][1], tmp4[1899][1];
+
+	while (AIthread_start == true)
+	{
+		if (dObserver.flag_AI_train == 1)
+		{
+			for (j = 0; j < dObserver.sum_k_AI-1; j++) //列号  一共1899组训练数据
+			{
+				dObserver.AI_Input[0][j] = dObserver.AI_fn_store[0][j] * 10; 
+				dObserver.AI_Input[1][j] = dObserver.AI_fn_store[1][j] * 10; 
+				dObserver.AI_Input[2][j] = dObserver.AI_fn_store[2][j] * 10;
+				dObserver.AI_Input[3][j] = dObserver.AI_fn_store[0][j+1] * 10;
+				dObserver.AI_Input[4][j] = dObserver.AI_fn_store[1][j+1] * 10;
+				dObserver.AI_Input[5][j] = dObserver.AI_fn_store[2][j+1] * 10;
+				dObserver.AI_Input[6][j] = dObserver.AI_vn_store[0][j];
+				dObserver.AI_Input[7][j] = dObserver.AI_vn_store[1][j];
+				dObserver.AI_Input[8][j] = dObserver.AI_vn_store[2][j];
+				dObserver.AI_Input[9][j] = dObserver.AI_vn_store[0][j+1];
+				dObserver.AI_Input[10][j] = dObserver.AI_vn_store[1][j+1];
+				dObserver.AI_Input[11][j] = dObserver.AI_vn_store[2][j+1];
+				output1[j][0] = dObserver.AI_deltaVn_store[0][j + 1];  //y1'
+				output2[j][0] = dObserver.AI_deltaVn_store[1][j + 1];  //y2'
+				output3[j][0] = dObserver.AI_deltaVn_store[2][j + 1];  //y3'
+			}
+
+			for (i = 0; i < dObserver.sum_k_AI - 1; i++) //列号  一共1899组训练数据
+			{
+				for (j = 0; j < dObserver.sum_k_AI - 1; j++)
+				{
+					AI_Input_i[0] = dObserver.AI_Input[0][i]; AI_Input_i[1] = dObserver.AI_Input[1][i]; AI_Input_i[2] = dObserver.AI_Input[2][i]; AI_Input_i[3] = dObserver.AI_Input[3][i];
+					AI_Input_i[4] = dObserver.AI_Input[4][i]; AI_Input_i[5] = dObserver.AI_Input[5][i]; AI_Input_i[6] = dObserver.AI_Input[6][i]; AI_Input_i[7] = dObserver.AI_Input[7][i];
+					AI_Input_i[8] = dObserver.AI_Input[8][i]; AI_Input_i[9] = dObserver.AI_Input[9][i]; AI_Input_i[10] = dObserver.AI_Input[10][i]; AI_Input_i[11] = dObserver.AI_Input[11][i];
+					AI_Input_j[0] = dObserver.AI_Input[0][j]; AI_Input_j[1] = dObserver.AI_Input[1][j]; AI_Input_j[2] = dObserver.AI_Input[2][j]; AI_Input_j[3] = dObserver.AI_Input[3][j];
+					AI_Input_j[4] = dObserver.AI_Input[4][j]; AI_Input_j[5] = dObserver.AI_Input[5][j]; AI_Input_j[6] = dObserver.AI_Input[6][j]; AI_Input_j[7] = dObserver.AI_Input[7][j];
+					AI_Input_j[8] = dObserver.AI_Input[8][j]; AI_Input_j[9] = dObserver.AI_Input[9][j]; AI_Input_j[10] = dObserver.AI_Input[10][j]; AI_Input_j[11] = dObserver.AI_Input[11][j];
+					vecsub(12, temp, AI_Input_i, AI_Input_j);
+					s1 = vectormo(temp, 12); s2 = -powl(s1, 2) / 2 / dObserver.AI_sig2;
+					omega[i][j] = powl(Exp, s2);
+				}
+			}
+
+			for (i = 0; i < 1899; i++)
+			{
+				for (j = 0; j < 1899; j++)
+				{
+					if (i == j)
+						omega[i][j] = omega[i][j] + 1 / dObserver.AI_gamma; //(omega + EE)
+				}
+				II[i][0] = 1;
+				II_transpose[0][i] = 1;
+			}
+
+			mainv_3000(1899, (double *)omega);//(omega+EE)^(-1)
+			mamul_3000(1, 1899, 1899, (double *)tmp2, (double *)II_transpose, (double *)omega); //II'*(omega+EE)^(-1)
+			mamul_3000(1, 1899, 1, (double *)tmp3, (double *)tmp2, (double *)II); //II'*(omega+EE)^(-1)*II=一个数
+
+			mamul_3000(1, 1899, 1, (double *)dObserver.AI_b1, (double *)tmp2, (double *)output1); //II'*(omega+EE)^(-1)*y1'
+			dObserver.AI_b1[0][0] = dObserver.AI_b1[0][0] / tmp3[0][0];//II'*(omega+EE)^(-1)*y1'/(II'*(omega+EE)^(-1)*II)
+			mamul_3000(1899, 1, 1, (double *)tmp4, (double *)II, (double *)dObserver.AI_b1); //II*AI_b1
+			masub(1899, 1, (double *)tmp4, (double *)output1, (double *)tmp4);//(y1'-II*AI_b1)  
+			mamul_3000(1899, 1899, 1, (double *)dObserver.AI_a1, (double *)omega, (double *)tmp4); //(omega+EE)^(-1)*(y1'-II*AI_b1)
+			
+			mamul_3000(1, 1899, 1, (double *)dObserver.AI_b2, (double *)tmp2, (double *)output2); //II'*(omega+EE)^(-1)*y2'
+			dObserver.AI_b2[0][0] = dObserver.AI_b2[0][0] / tmp3[0][0];//II'*(omega+EE)^(-1)*y2'/(II'*(omega+EE)^(-1)*II)
+			mamul_3000(1899, 1, 1, (double *)tmp4, (double *)II, (double *)dObserver.AI_b2); //II*AI_b2
+			masub(1899, 1, (double *)tmp4, (double *)output2, (double *)tmp4);//(y2'-II*AI_b2)
+			mamul_3000(1899, 1899, 1, (double *)dObserver.AI_a2, (double *)omega, (double *)tmp4); //(omega+EE)^(-1)*(y2'-II*AI_b2)
+
+			mamul_3000(1, 1899, 1, (double *)dObserver.AI_b3, (double *)tmp2, (double *)output3); //
+			dObserver.AI_b3[0][0] = dObserver.AI_b3[0][0] / tmp3[0][0];//
+			mamul_3000(1899, 1, 1, (double *)tmp4, (double *)II, (double *)dObserver.AI_b3); //
+			masub(1899, 1, (double *)tmp4, (double *)output3, (double *)tmp4);//
+			mamul_3000(1899, 1899, 1, (double *)dObserver.AI_a3, (double *)omega, (double *)tmp4); //
+
+			//标志位操作
+			dObserver.flag_AI_train = 0;
+			dObserver.flag_AI_Ready = 1;
+			AIthread_start == false;   //结束线程
+		}
+	}
 	return 0;
 }
 #pragma endregion ProFunc

@@ -10,6 +10,7 @@
 #define  E1              0.08181922                  //第一偏心率
 #define  E2              0.00669438                  //第一偏心率
 #define  EI              1e-6
+#define  Exp             2.71828182845904523536      //自然指数   20180117
 
 #define  GRAVITY         9.7803267714                //g
 #define  ug              GRAVITY*0.000001            //ug
@@ -54,6 +55,8 @@
 #define    NAVI_PHINS_VEL1    8                      // PHINS速度组合n系
 #define    NAVI_PHINS_VEL2    9                      // PHINS速度组合b系
 #define    NAVI_VELANDAZ2     10                     // 速度+航向组合b系
+#define    NAVI_DVL_Cmp_Depth    11                  // INS/DVL/Cmp/Depth
+#define    NAVI_VELb_transverse  12				     // 横向INS/DVL
 //纯惯性模式选择
 #define    PURE_SINS_UNDUMP   0                      // 纯捷联无阻尼
 #define    PURE_SINS_DUMP     1                      // 纯捷联高度阻尼
@@ -138,6 +141,13 @@ struct SYS_ELEMENTtransverse
 	double acce_b[3];
 	double P;//0~2PAI, 地理坐标系顺时针转到横向坐标系的角度
 	int isstart;    //用来判断是否已经进去transverse模式
+
+	double wie_s[3];  //20180319
+	double wis_s[3];
+	double t_1;
+	double Rx_1;
+	double Ry_1;
+	double vel_b[3];
 };
 //粗对准相关变量结构体
 struct COARSE_ALGI
@@ -380,6 +390,33 @@ struct SKALMAN_16_3                   //20171108
 	double	H_matrix[3][16];    //								
 	double	Mea_vector[3];              //观测量	
 };
+// 状态量19维观测量3维的Kalman结构体, 用于水速估计的INS_DVL组合导航
+struct SKALMAN_19_6                   //20171108
+{
+	double	X_vector[19];         //状态量X为15维
+	double  X_forecast[19];       //一步预测的X值
+	double	state_dis[19][19];    // 状态转移矩阵；
+	double	P_matrix[19][19];     //误差方差阵；
+	double  P_forecast[19][19];    //一步预测的P值
+	double	Q_state[19][19];      //系统噪声方差阵
+	double	R_measure[6][6];   //观测噪声方差阵
+	double	H_matrix[6][19];    //								
+	double	Mea_vector[6];              //观测量
+	double  f;              //概率
+};
+// 状态量15维观测量1维的Kalman结构体, 用于INS_Cmp,INS_Depth组合导航
+struct SKALMAN_15_1                   //20180116
+{
+	double	X_vector[15];         //状态量X为15维
+	double  X_forecast[15];       //一步预测的X值
+	double	state_dis[15][15];    // 状态转移矩阵；
+	double	P_matrix[15][15];     //误差方差阵；
+	double  P_forecast[15][15];    //一步预测的P值
+	double	Q_state[15][15];      //系统噪声方差阵
+	double	R_measure[1][1];   //观测噪声方差阵
+	double	H_matrix[1][15];    //								
+	double	Mea_vector[1];              //观测量	
+};
 // 通用型kalman滤波器设计尝试,暂时设计21*7维。21的目前不知道怎么用，7维考虑3速度3位置1航向等
 // 通用型必须重写所有矩阵、向量运算，_(:з」∠)_算了暂时放弃
 struct SKALMAN_RE                   
@@ -408,6 +445,103 @@ struct ADRC_S
 	double ue,un,uu,ufe,ufn;
 	float azi1,azi2,azi3,azi4,azi5;//仿罗经航向对准参数
 	double v1,v2;//TD输出
+};
+// 用于水下组合导航，保存所有的DVL、Cmp、Depth相关外部信息量
+// 以及IMM参数、外信息评估的存储空间、Rkf门限等
+class SDVLCmpDepth                   //20171108
+{
+public:
+	double	DVL_d[3];         //DVL对地测速
+	double  DVL_c[3];         //DVL对地测速
+	double  K;                //刻度因子
+	double	V_c_n[3];    // 地理系水速
+	double  L;           //水速空间相关系数
+	double	Cmp;     //磁罗经
+	double  Depth;    //高度计
+	int flag_DVL; //0-DVL对水对地均有效；1-DVL对水有效；2-DVL对地有效；3-DVL无效
+	int flag_C;   //0-磁罗经有效；1-无效
+	int flag_D;   //0-深度计有效；1-无效
+	int flag_current;   //水流速度成功估计标志：1-未估计，0-水流已估计
+	int flag_mode_1;      //上一时刻工作模式标志位，用来判断是否进入新模式，以做初始化,100为刚进行完对准的初始模式
+	int flag_mode;       // 应选择的工作模式,即当前工作模式：由DVL状态和水流估计状态位进行判断
+	int flag_pureins;    //模式3(纯惯性)中  0 - 纯捷联(不反馈); 1 - ZUPT;  2 - AI(待加入)
+	int flag_pureinsLong; // 判断纯捷联时间长短的标志位，1 - 长，0 - 短，以800s为界。
+	double DVL_ERR; //DVL 噪声，3轴噪声一样，用一个指示。
+	double R1_esti[6][6];  //IMM KF1对应R
+	double R2_esti[6][6];  //IMM KF2对应R
+	double R3_esti[6][6];  //IMM KF3对应R
+	double R_adaptive[6][6];  //IMM 自适应Rk，用来跟踪外信息的Rk
+	double u[3];           //模型概率
+	double P[3][3];        //模型概率转移矩阵
+	double R_A_store[20][6]; //滑动窗内新息数据存储,for 自适应
+	double wbfb_store[20][6]; //滑动窗内陀螺加表数据存储，for ZUPT
+	int k_0;   //记录进入各模式的时刻
+	double deltaK; //记录进入模式3时的deltaK估计量，离开模式3时用此给Xk[15]赋值
+	double ZUPT_angle;//b系与载体系的夹角
+	double lamda;//用来记录lamda
+	double Vbx_store[100];//用来存储Vb,以求取虚拟转台系与车体系的航向角夹角
+	double Vby_store[100];//用来存储Vb,以求取虚拟转台系与车体系的航向角夹角
+	int kk_ZUPT;//用来记录Vb_store存储个数；
+
+	int flag_AI; // 整个程序是否进行AI辅助的纯捷联，人为控制。1-进行AI，0-不进行AI
+	int flag_AI_train; //AI训练标志位，控制训练线程，1 - 进行AI训练，0 - 不进行AI训练，初始置1
+	int flag_AI_store; //AI存储标志位，1-开放存储AI训练数据，0-训练集存储满，不再存储，初始置1
+	int flag_AI_Ready; //0-还没训练好，1-训练完成，可以预测
+	int kk_AI; //计次（训练数据）
+	int sum_k_AI;//训练总秒数
+	double AI_vn_store[3][1900]; //存储vns   1900和sum_k_AI要对应！！！！！
+	double AI_fn_store[3][1900]; // 存储fn   1900和sum_k_AI要对应！！！！！
+	double AI_deltaVn_store[3][1900]; //存储delta_vn  1900和sum_k_AI要对应！！！！！
+	double AI_fn_k_1[3];  //记录历史输入信息
+	double AI_vns_k_1[3]; //记录历史输入信息
+	double AI_Input[12][1899];//比sum_k_AI少1
+	double AI_sig2;
+	double AI_gamma;
+	double AI_b1[1][1];
+	double AI_b2[1][1];
+	double AI_b3[1][1];
+	double AI_a1[1899][1];   //比sum_k_AI少1
+	double AI_a2[1899][1];
+	double AI_a3[1899][1];
+
+	SDVLCmpDepth()
+	{
+		V_c_n[0] = 0.3; V_c_n[1] = 0.3; V_c_n[2] = 0.1;
+		L = 10000;
+		K = 1.00;
+		flag_DVL = 0;
+		flag_C = 0;
+		flag_D = 0;
+		flag_current = 1; //1-未估计
+		flag_mode_1 = 100; //随便赋一个值
+		flag_mode = 100;
+		flag_pureins = 1;
+		flag_pureinsLong = 0;
+		DVL_ERR = 0.0;
+		lamda = 0;
+		kk_ZUPT = 0;
+		u[0] = 0.05; u[1] = 0; u[2] = 0.95;
+		P[0][0] = 0.8; P[0][1] = 0.1; P[0][2] = 0.1;
+		P[1][0] = 0.1; P[1][1] = 0.8; P[1][2] = 0.1;
+		P[2][0] = 0.1; P[2][1] = 0.1; P[2][2] = 0.8;
+		memset(R_A_store, 0, sizeof(R_A_store));
+		memset(wbfb_store, 0, sizeof(wbfb_store));//在初进模式3时设置
+		memset(Vbx_store, 0, sizeof(Vbx_store));
+		memset(Vby_store, 0, sizeof(Vby_store));
+		deltaK = 0;
+		ZUPT_angle = 0;// 0.8185*D2R;
+		flag_AI = 0;   // 整个程序是否进行AI辅助的纯捷联，人为控制。1 - 进行AI，0 - 不进行AI
+		flag_AI_Ready = 0;
+		flag_AI_store = 1;
+		flag_AI_train = 0;
+		kk_AI = 0;//计次（训练数据）
+		sum_k_AI = 1900;//训练总秒数
+		memset(AI_vn_store, 0, sizeof(AI_vn_store));
+		memset(AI_fn_store, 0, sizeof(AI_fn_store));
+		memset(AI_deltaVn_store, 0, sizeof(AI_deltaVn_store));
+		AI_sig2 = 10000;
+		AI_gamma = 10000;
+	}
 };
 //系统控制参数
 class SYSTEMCTRL

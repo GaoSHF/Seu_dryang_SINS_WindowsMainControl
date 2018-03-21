@@ -26,6 +26,9 @@ double vectormo(double *a, int num);//向量求模
 void bubblesort(double *a, int num);//排序by dr.yang，应该问题不大
 double white();//产生白噪声
 
+double det(double *a, int n);  //求行列式      //20180116
+void mainv_3000(int n, double *a);//高维矩阵求逆运算 
+void mamul_3000(int n1, int n2, int n3, double *a, double *b, double *c); //高维矩阵相乘运算 
 
 
 

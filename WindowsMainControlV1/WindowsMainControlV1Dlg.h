@@ -73,6 +73,7 @@ public:
 	static void NaviThread();//
 	static UINT PHINSThread(LPVOID pParam);
 	static UINT SimulateThread(LPVOID pParam);//仿真数据线程
+	static UINT AI_TrainingThread(LPVOID pParam);//AI trainning线程
 
 	static bool Rec200times(int &count200);//每接收数据200个返回1
 	static int FOSNChannel();

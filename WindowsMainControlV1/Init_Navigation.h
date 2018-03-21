@@ -18,7 +18,13 @@ extern CALIPMT calipara;//标定参数
 extern ZTPARA ZT;
 extern SKALMAN_15_3 fkalman;
 extern SKALMAN_15_3 nkalman;
-extern SKALMAN_16_3 kalman_dvl;          //20171128         
+extern SKALMAN_16_3 kalman_dvl;          //20171128  
+extern SKALMAN_16_3 kalman_dvl_transverse;			 //导航（非对准阶段）开始的横向坐标系下16维kalman对象 //20180319
+extern SKALMAN_19_6 dvlkalman;                     //INS/DVL子滤波器
+extern SKALMAN_15_1 cmpkalman;                     //INS/Cmp子滤波器
+extern SKALMAN_15_1 depkalman;                     //INS/Cmp子滤波器
+extern SKALMAN_15_3 zupkalman;                     //ZUPT 子滤波器
+extern SDVLCmpDepth dObserver;          //20180116  
 
 extern INSCAL INScal;
 extern FOSN fosn;
@@ -33,3 +39,7 @@ void init_adrc(void);
 void Kal_Init_P_15(SKALMAN_15_3& temp_kal,char mode);
 void Kal_Init_P_16(SKALMAN_16_3& temp_kal);   
 void kalinitial(void);
+void Kal_Init_DVL_19(SKALMAN_19_6 & temp_kal);
+void Kal_Init_Cmp_15(SKALMAN_15_1& temp_kal);
+void Kal_Init_Depth_15(SKALMAN_15_1& temp_kal);
+void Kal_Init_ZUPT_15(SKALMAN_15_3& temp_kal);
