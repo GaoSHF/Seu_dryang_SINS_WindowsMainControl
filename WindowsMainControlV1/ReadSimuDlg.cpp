@@ -14,7 +14,7 @@ IMPLEMENT_DYNAMIC(ReadSimuDlg, CDialogEx)
 ReadSimuDlg::ReadSimuDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(ReadSimuDlg::IDD, pParent)
 {
-	
+	Skiptime = 0;
 }
 
 ReadSimuDlg::~ReadSimuDlg()
@@ -28,6 +28,7 @@ void ReadSimuDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CK_Delay5ms, RS_Delay5ms);
 	DDX_Control(pDX, IDC_CK_ReadInitPos, RS_ReadInitPos);
 	DDX_Control(pDX, IDC_CK_ReadInitAtt, RS_ReadInitAtt);
+	DDX_Text(pDX, IDC_SKIPTIME, Skiptime);
 
 	init_RScombo();//我真醉了，这个初始化不能放在构造函数里。猜测原因可能是因为这个对话框还有没有初始化好，上面的变量也没有绑定好
 }
@@ -58,6 +59,7 @@ void ReadSimuDlg::init_RScombo()
 	RS_Delay5ms.SetCheck(0);
 	RS_ReadInitPos.SetCheck(1);
 	RS_ReadInitAtt.SetCheck(1);
+	
 	state_rtn = 0;
 }
 
@@ -118,9 +120,12 @@ void ReadSimuDlg::OnBnClickedOk()
 {
 	// TODO: 在此添加控件通知处理程序代码
 	//CDialogEx::OnOK();
+	CString st;
 	combonum = RS_FileFormat.GetCurSel();
 	Delay5ms=RS_Delay5ms.GetCheck();//0表示未选中状态，1表示选中状态，2表示不确定状态（仅用于复选框）
 	ReadInitAtt=RS_ReadInitAtt.GetCheck();
 	ReadInitPos = RS_ReadInitPos.GetCheck();
+	GetDlgItemText(IDC_SKIPTIME, st);
+	Skiptime = _ttoi(st);
 	EndDialog(state_rtn);
 }
