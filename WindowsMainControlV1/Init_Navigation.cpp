@@ -614,4 +614,7 @@ void kalinitial()
 	kal.gyro_comps[0] = 0.0 * D2R / 3600.0;
 	kal.gyro_comps[1] = 0.0 * D2R / 3600.0;
 	kal.gyro_comps[2] = 0.0 * D2R / 3600.0;
+	//1.81401545482438e-05
+	//calipara.bias_gyro[0] = 1.81401545482438e-05;
+	//calipara.bias_gyro[1] = 2.40254483567394e-05;
 }

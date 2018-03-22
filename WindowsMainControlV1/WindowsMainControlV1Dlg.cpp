@@ -1562,7 +1562,7 @@ void CWindowsMainControlV1Dlg::getfileData()
 				initial_latitude = phins.pos[0];
 				initial_longitude = phins.pos[1];
 				initial_height = phins.pos[2];
-				memcpy(infor.vel_n, fosn.vel, sizeof(fosn.vel));
+				memcpy(infor.vel_n, phins.vel, sizeof(phins.vel));
 
 				infor.att_angle[0] = fosn.ang[0] * D2R;
 				infor.att_angle[1] = fosn.ang[1] * D2R;
@@ -1830,7 +1830,7 @@ void CWindowsMainControlV1Dlg::SaveData()
 				fflush(fid_Cal);
 				return;
 			}	
-			if (NaviModeNum == NAVI_HAISHI_BASIC || NaviModeNum == NAVI_HAISHI_JZ)
+			if (MAINMODE==2)
 			{          //                               |                    |                    |                    |                    |                    |                    |                    |
 				fprintf_s(fid_Cal, "%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf\n",
 					INScal.ang[0], INScal.ang[1], INScal.ang[2],
@@ -1841,7 +1841,7 @@ void CWindowsMainControlV1Dlg::SaveData()
 					phins.ang[0], phins.ang[1], phins.ang[2],
 					phins.vel[0], phins.vel[1], phins.vel[2],
 					phins.pos[0], phins.pos[1], phins.pos[2], 
-					infor.vel_arm[0], infor.vel_arm[1], infor.vel_arm[2]);
+					IMUout.acce_b[0], IMUout.acce_b[1], IMUout.acce_b[2]);
 				fflush(fid_Cal);
 				return;
 			}
