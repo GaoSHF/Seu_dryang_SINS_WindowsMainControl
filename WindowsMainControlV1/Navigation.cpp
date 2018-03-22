@@ -365,7 +365,7 @@ void kal_algo()//+
 	double	X_forecast[sta_num], P_forecast[sta_num][sta_num], K_matrix[sta_num][mea_num], K_matrix1[sta_num][mea_num];
 	double	unit_matr[sta_num][sta_num];
 	double	tmp1[sta_num][sta_num], tmp2[mea_num][sta_num], tmp3[mea_num][mea_num], tmp4[sta_num][mea_num], tmp5[mea_num], tmp6[sta_num];
-
+	double  temp_mean[3];
 	for (i = 0; i < sta_num; i++)
 		for (j = 0; j < sta_num; j++)
 		{
@@ -434,10 +434,31 @@ void kal_algo()//+
 	mamul(sta_num, mea_num, sta_num, (double *)tmp1, (double *)K_matrix, (double *)kal.H_matrix);
 	masub(sta_num, sta_num, (double *)tmp1, (double *)unit_matr, (double *)tmp1);
 	mamul(sta_num, sta_num, sta_num, (double *)kal.P_matrix, (double *)tmp1, (double *)P_forecast);
+	/*if (sysc.data_cnt > 1000)//阈值处理/百分比设置等
+	{
+		//amamul(3, 1, temp_mean, kal.Mea_vector, 0.2);
+		temp_mean[2] = kal.Mea_vector[2];
+		if (kal.Mea_vector[0]<0.05&&kal.Mea_vector[0]>-0.05)
+			temp_mean[0] = kal.Mea_vector[0];
+		else if (kal.Mea_vector[0]>0.05)
+			temp_mean[0] = 0.05;
+		else
+			temp_mean[0] = -0.05;
+
+		if (kal.Mea_vector[1]<0.05&&kal.Mea_vector[1]>-0.05)
+			temp_mean[1] = kal.Mea_vector[1];
+		else if (kal.Mea_vector[1]>0.05)
+			temp_mean[1] = 0.05;
+		else
+			temp_mean[1] = -0.05;
+	}
+	else*/
+		amamul(3, 1, temp_mean, kal.Mea_vector, 1);
 
 	//更新 X
 	vecmul(mea_num, sta_num, tmp5, (double *)kal.H_matrix, X_forecast);
-	vecsub(mea_num, tmp5, kal.Mea_vector, tmp5);
+	//vecsub(mea_num, tmp5, kal.Mea_vector, tmp5);
+	vecsub(mea_num, tmp5, temp_mean, tmp5);
 
 	vecmul(sta_num, mea_num, tmp6, (double *)K_matrix1, tmp5);  //新算法
 																//	vecmul(sta_num,mea_num,tmp6,(double *)K_matrix,tmp5);  老算法
@@ -481,8 +502,8 @@ void navigation(double o_vel_e,double o_vel_n,double o_ang,char mode)
 	static int CountOfCorrect = 100;
 
 	//////////////////
-	if (sysc.data_cnt>10000)
-		set_R(kal, 4.5, 6.0, 3.0);
+	if (sysc.data_cnt>1)
+		//set_R(kal, 4.0, 4.0, 3.0);
 	if (0 == sysc.data_cnt%sysc.Fs)
 	{	
 		memcpy(kal.F_kal, kal.F_sum, sizeof(kal.F_sum));
@@ -495,6 +516,7 @@ void navigation(double o_vel_e,double o_vel_n,double o_ang,char mode)
 		vecmul(3, 3, infor.vel_arm, (double *)infor.cbn_mat, infor.vel_arm);
 		kal.Mea_vector[0] = kal.Mea_vector[0] - infor.vel_arm[0];
 		kal.Mea_vector[1] = kal.Mea_vector[1] - infor.vel_arm[1];
+		
 		if (sysc.data_cnt>16800)
 		{
 			if (kal.Mea_vector[0] > 1.0) kal.Mea_vector[0] = 1.0;
