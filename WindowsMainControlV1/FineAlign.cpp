@@ -489,7 +489,7 @@ void fine_yucia(SKALMAN_15_3& temp_kal, double observer[3],char mode)
 	int i = 0;
 	double F_15[15][15] = { 0 };
 	double tempq[4] = { 0 }, tempphi[3] = { 0 };
-	double temp_bias[3];
+//	double temp_bias[3];
 	if (sysc.cnt_s == sysc.algn_time)
 	{
 		sysc.f_fine_over = TRUE;                        // 精对准结束

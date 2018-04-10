@@ -253,8 +253,8 @@ double IMUOUT::generate_data(Route route, double t, double delta_t, FILE *fide)
 		}
 
 
-		dlati = (old_veln[1] + vel_n[1]) / 2 / RE;
-		dlongi = (old_veln[0] + vel_n[0]) / 2 / (RE * cos(lati));
+		dlati = (old_veln[1] + vel_n[1]) / 2.0 / RE;
+		dlongi = (old_veln[0] + vel_n[0]) / 2.0 / (RE * cos(lati));
 
 		win_n[0] = -dlati;
 		win_n[1] = WIE * cos(lati) + dlongi * cos(lati);
@@ -314,8 +314,8 @@ double IMUOUT::generate_data(Route route, double t, double delta_t, FILE *fide)
 }
 void IMUOUT::printf_data(double t, FILE *fide, Route route)
 {
-	//                  |                    |                    |                    |                    |           |       |
-	fprintf_s(fide, "%lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%lf,%lf,%lf,%lf,%lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf\n",
+	//                  |                    |                    |                    |                    |                    |       |
+	fprintf_s(fide, "%lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%lf,%lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf\n",
 		t,
 		gyro_wib_b[0], gyro_wib_b[1], gyro_wib_b[2],
 		acce_b[0], acce_b[1], acce_b[2],

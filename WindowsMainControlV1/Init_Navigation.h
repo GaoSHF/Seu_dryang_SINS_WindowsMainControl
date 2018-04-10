@@ -1,6 +1,6 @@
 #include "BasicNaviCal.h"
 #include "Struct.h"
-
+#include "DataConvert.h"
 #pragma once 
 
 #define INIT_A3 0

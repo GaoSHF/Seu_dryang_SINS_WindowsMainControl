@@ -1,4 +1,5 @@
 #include <cstring>
+
 #pragma once 
 
 #define  PAI             3.1415926535
@@ -191,11 +192,43 @@ struct COARSE_ALGI
 	double g_i0_k1[3];	// t0到tk1时间段重力加速度在i0系投影的积分值
 	double g_i0_k2[3];	// t0到tk2时间段重力加速度在i0系投影的积分值
 };
-//IMU输出
-struct OUTIMU
+//导航参数，还未仔细考究
+struct NAVPARA
 {
-	double gyro_b[3];
-	double acce_b[3];
+	double  gn[3];
+};
+class EARTH
+{
+	double g[3];
+};
+//罗经法对准控制量
+struct  COMPALIGN
+{
+	double  wc_n[3];
+	double  wc_b[3];
+	double  fc_n[3];
+	double  fc_b[3];
+	double  k1[3];
+	double	k2[5];
+};
+
+//calibration parameters
+class CALIPMT
+{
+public:
+	double bias_gyro[3], bias_acce[3];
+	double bias_gyro_random[3], bias_acce_random[3];
+	double fix_err[3];//IMU与转台安装误差角
+	double fix_mat[3][3];
+	double Eg_ang[6];//Egxy,Egyx,Egyz,Egzy,Egxz,Egzx
+	double Ea_ang[6];//Eaxy,Eayx,Eayz,Eazy,Eaxz,Eazx
+	double Cg[3], Ca[3];//calibration factors
+	double Eg_mat[3][3] , Ea_mat[3][3];
+	double Eg_mat_inv[3][3], Ea_mat_inv[3][3];
+	CALIPMT();
+	void Eang2mat();
+	void fixup(double fixmat[3], double Cnb0[3][3]);
+	void IMUcalibrate(SYS_ELEMENT &infor);
 };
 //解算的输出，主要用来显示
 class INSCAL
@@ -217,147 +250,6 @@ public:
 		memset(err_vel, 0, sizeof(err_vel));
 	}
 };
-//转台姿态
-class ZTPARA
-{
-public:
-	double ang[3];
-	int Frame;
-	int cnt;
-	ZTPARA()
-	{
-		Frame = 0;
-		cnt = 0;
-		memset(ang, 0, sizeof(ang));
-	}
-};
-//导航参数，还未仔细考究
-struct NAVPARA
-{
-	double  gn[3];
-};
-class EARTH
-{
-	double g[3];
-};
-//罗经法对准控制量
-struct  COMPALIGN
-{
-	double  wc_n[3];
-	double  wc_b[3];
-	double  fc_n[3];
-	double  fc_b[3];
-	double  k1[3];
-	double	k2[5]; 
-};
-//GPS相关
-class GPS
-{
-public:
-	double pos[3];
-	double time;
-	double vel[3];
-	int cnt;
-	int flag;
-	double vv,hv,att;//Vertical speed,Horizontal speed,Actual direction with respect to True North
-	
-	GPS()
-	{
-		memset(vel, 0, sizeof(vel));
-		memset(pos, 0, sizeof(pos));
-		
-		time = 0.0;
-		cnt = 0;
-		flag = 0;
-	}
-	void reset()
-	{
-		memset(vel, 0, sizeof(vel));
-		memset(pos, 0, sizeof(pos));
-		
-		time = 0.0;
-		cnt = 0;
-		flag = 0;
-	}
-};
-//FOSN相关
-class FOSN
-{
-public:
-	double vel[3];
-	double pos[3];
-	double ang[3];
-	double time;
-	int recnum;
-	int s, ms;
-	FOSN()
-	{
-		memset(vel, 0, sizeof(vel));
-		memset(pos, 0, sizeof(pos));
-		memset(ang, 0, sizeof(ang));
-		time = 0;
-		recnum = 0;
-		ms = 0;
-		s = 0;
-	}
-	void reset()
-	{
-		memset(vel, 0, sizeof(vel));
-		memset(pos, 0, sizeof(pos));
-		memset(ang, 0, sizeof(ang));
-		time = 0;
-		recnum = 0;
-		ms = 0;
-		s = 0;
-	}
-};
-class PHINS
-{
-public:
-	double vel[3];
-	double pos[3];
-	double ang[3];
-	double vel_b[3];
-	int cnt;
-	double utc;
-	PHINS() 
-	{
-		memset(vel,0,sizeof(vel));
-		memset(pos, 0, sizeof(pos));
-		memset(ang, 0, sizeof(ang));
-		memset(vel_b, 0, sizeof(vel_b));
-		cnt = 0;
-		utc = 0;
-	}
-	void reset()
-	{
-		memset(vel, 0, sizeof(vel));
-		memset(pos, 0, sizeof(pos));
-		memset(ang, 0, sizeof(ang));
-		memset(vel_b, 0, sizeof(vel_b));
-		cnt = 0;
-		utc = 0;
-	}
-};
-//calibration parameters
-class CALIPMT
-{
-public:
-	double bias_gyro[3], bias_acce[3];
-	double bias_gyro_random[3], bias_acce_random[3];
-	double fix_err[3];//IMU与转台安装误差角
-	double fix_mat[3][3];
-	double Eg_ang[6];//Egxy,Egyx,Egyz,Egzy,Egxz,Egzx
-	double Ea_ang[6];//Eaxy,Eayx,Eayz,Eazy,Eaxz,Eazx
-	double Cg[3], Ca[3];//calibration factors
-	double Eg_mat[3][3] , Ea_mat[3][3];
-	double Eg_mat_inv[3][3], Ea_mat_inv[3][3];
-	CALIPMT();
-	void Eang2mat();
-	void fixup(double fixmat[3], double Cnb0[3][3]);
-	void IMUcalibrate(SYS_ELEMENT &infor);
-};
-
 // 状态量15维观测量3维的Kalman结构体, 用于kalman精对准、最基本INS_GPS,INS_DVL组合导航
 struct SKALMAN_15_3                   //20171108
 {

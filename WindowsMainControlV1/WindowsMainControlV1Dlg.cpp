@@ -9,7 +9,7 @@
 #include "WindowsMainControlV1Dlg.h"
 #include "afxdialogex.h"
 #include "BoardCard.h"
-#include "DataConvert.h"
+
 #include "CoarseAlign.h"
 #include "FineAlign.h"
 #include "Navigation.h"
@@ -64,7 +64,7 @@ bool is_cardReset;//板卡重开
 bool is_data_used;//接收数据是否已经被解算使用
 bool is_start_phins;
 bool mquit;//程序退出，用于线程循环退出控制
-
+bool pc104RecQuit;//pc104接收线程退出
 //FOSN数据
 BYTE bufFOSN[70];
 //gps数据
@@ -76,7 +76,7 @@ int m_cnt_err;//帧差
 //解算数据
 int m_cnt_s;
 //PHINS数据
-char m_Recv_PHINS_Buff[1024];
+char m_Recv_PHINS_Buff[256];
 
 //读数仿真模式
 READSIMULATION RS_para;
@@ -147,6 +147,7 @@ CWindowsMainControlV1Dlg::CWindowsMainControlV1Dlg(CWnd* pParent /*=NULL*/)
 	is_UpdateData = true;
 	is_cardReset = 1;
 	mquit = 0;
+	pc104RecQuit = true;
 	init_var();
 }
 void CWindowsMainControlV1Dlg::DoDataExchange(CDataExchange* pDX)
@@ -690,8 +691,9 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnSaveHelp()
 void CWindowsMainControlV1Dlg::OnBnClickedCancel()
 {
 	// TODO: 在此添加控件通知处理程序代码
-
+	mquit = 1;
 	closesocket(m_socketPHINSDataRec);
+	closesocket(m_socketPC104DataRec);
 	WSACleanup();
 	if (is_startCal)OnBnClickedBtnStartcal();
 	if (fid_zt != NULL) fclose(fid_zt);
@@ -888,6 +890,27 @@ void CWindowsMainControlV1Dlg::OnCbnSelchangeTextMode()
 		SimuDataDlg simuDlg;
 		nRes = simuDlg.DoModal();
 	}
+
+	if (m_TestMode.GetCurSel() == 8)
+	{
+		pc104RecQuit = false;
+		GetDlgItem(IDC_BTN_SAVEPATH)->EnableWindow(TRUE);	
+		GetDlgItem(IDC_BTN_StartCard)->EnableWindow(FALSE);
+		GetDlgItem(IDC_BTN_StartPhins)->EnableWindow(FALSE);	
+		CWinThread* pc104_Thread;
+		SOCKETPARAM  *phWndParam = new SOCKETPARAM;
+		phWndParam->hwnd = m_hWnd;
+		phWndParam->sock = m_socketPC104DataRec;
+		if (!(pc104_Thread = AfxBeginThread(PC104RecThread, (LPVOID)phWndParam)))
+			return;
+	}
+	else
+	{
+		pc104RecQuit = true;
+		GetDlgItem(IDC_BTN_SAVEPATH)->EnableWindow(FALSE);
+		GetDlgItem(IDC_BTN_StartCard)->EnableWindow(TRUE);
+		GetDlgItem(IDC_BTN_StartPhins)->EnableWindow(TRUE);
+	}
 }
 //精对准下才启用水平和航向对准时间
 void CWindowsMainControlV1Dlg::OnCbnSelchangeComboFinealignmode()
@@ -1018,8 +1041,8 @@ bool CWindowsMainControlV1Dlg::init_Combo()
 	}
 	m_HeightMode.SetCurSel(3);
 
-	CString str6[] = { _T("转台实验"),_T("车载实验"),_T("纯录数（不含phins）"),_T("纯录数（含phins）"),_T("备用1"),_T("备用2"),_T("读数仿真"),_T("模拟数据仿真") };
-	for (i = 0; i < 8; i++)
+	CString str6[] = { _T("转台实验"),_T("车载实验"),_T("纯录数（不含phins）"),_T("纯录数（含phins）"),_T("备用1"),_T("备用2"),_T("读数仿真"),_T("模拟数据仿真"),_T("PC104数据接收") };
+	for (i = 0; i < 9; i++)
 	{
 		judge_tf = m_TestMode.InsertString(i, str6[i]);
 		if ((judge_tf == CB_ERR) || (judge_tf == CB_ERRSPACE))
@@ -1060,6 +1083,24 @@ bool CWindowsMainControlV1Dlg::Init_Net(void)
 		closesocket(m_socketPHINSDataRec);
 		return false;
 	}
+
+	m_socketPC104DataRec = socket(AF_INET, SOCK_DGRAM, 0);
+	if (INVALID_SOCKET == m_socketPC104DataRec)
+	{
+		MessageBox(_T(" 数据接收socket创建失败"));
+		return false;
+	}
+	
+	addrRecSock.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
+	addrRecSock.sin_family = AF_INET;
+	addrRecSock.sin_port = htons(6005);
+	retval = bind(m_socketPC104DataRec, (SOCKADDR*)& addrRecSock, sizeof(SOCKADDR));
+	if (SOCKET_ERROR == retval)
+	{
+		closesocket(m_socketPC104DataRec);
+		return false;
+	}
+
 	return true;
 }
 #pragma endregion InitFunc
@@ -1127,53 +1168,12 @@ int CWindowsMainControlV1Dlg::FOSNChannel()
 		if (Sio_Rx_IsFrameOver(hCard, 2))
 		{
 			Sio_ReadFrame(hCard, 2, bufFOSN, &rt);
-
-			//数据解析
-			int4ch.Ch[0] = bufFOSN[3];
-			int4ch.Ch[1] = bufFOSN[4];
-			int4ch.Ch[2] = bufFOSN[5];
-			int4ch.Ch[3] = bufFOSN[6];
-			fosn.time = int4ch.Int / 1000.0;
-			//msecond=(unsigned int)IN4CH.Int%1000/1000.0;
-			fosn.s = (int)fosn.time;
-			fosn.ms = ((int)fosn.time - fosn.s) * 1000;
-
-			/* 载体坐标系为前上右 */
-			for (i = 0; i < 12; i++)
-				int12ch.Ch[i] = bufFOSN[i + 7];
-
-			/***************XYZ轴角速率****************/
-			IMUout.gyro_b[1] = int12ch.Int[0] / 3.6*1e-6;
-			IMUout.gyro_b[2] = int12ch.Int[1] / 3.6*1e-6;
-			IMUout.gyro_b[0] = int12ch.Int[2] / 3.6*1e-6;
-
-			for (i = 0; i < 12; i++)
-				int12ch.Ch[i] = bufFOSN[i + 19];
-
-			/***************XYZ轴加速度****************/
-			IMUout.acce_b[1] = int12ch.Int[0] * 1e-6;
-			IMUout.acce_b[2] = int12ch.Int[1] * 1e-6;
-			IMUout.acce_b[0] = int12ch.Int[2] * 1e-6;
-
-			for (i = 0; i < 24; i++)
-				fl6ch.Ch[i] = bufFOSN[i + 33];
-
-			/********横滚角、航向角、俯仰角************/
-			fosn.ang[1] = fl6ch.FLo[0];
-			fosn.ang[2] = fl6ch.FLo[1];
-			fosn.ang[0] = fl6ch.FLo[2];
-
-			/*************北、天、东向速度************/
-			fosn.vel[1] = fl6ch.FLo[3];
-			fosn.vel[2] = fl6ch.FLo[4];
-			fosn.vel[0] = fl6ch.FLo[5];
-
-			for (i = 0; i < 12; i++)
-				fl6ch.Ch[i] = bufFOSN[i + 57];
-			/**************纬度、经度、高度***********/
-			fosn.pos[0] = fl6ch.FLo[0] * 57.29578;
-			fosn.pos[1] = fl6ch.FLo[1] * 57.29578;
-			fosn.pos[2] = fl6ch.FLo[2];
+			fosn.Conv(bufFOSN);
+			for (i = 0; i < 3; i++)
+			{
+				IMUout.acce_b[i] = fosn.fb[i];
+				IMUout.gyro_b[i] = fosn.wb[i];
+			}
 
 			if (is_startCal)fosn.recnum++;
 			return 1;
@@ -1242,73 +1242,15 @@ void CWindowsMainControlV1Dlg::ZTChannel()
 }
 int CWindowsMainControlV1Dlg::GPSChannel()
 {
-	WORD rt = 0;
-	int i;
+	WORD rt = 0;	
 	//	Protocol Mode
 	if (Sio_Rx_IsFrameOver(hCard, 3))
 	{
 		Sio_ReadFrame(hCard, 3, BufGPS, &rt);
-		if (BufGPS[0] == 0xAA && BufGPS[1] == 0x44 && BufGPS[2] == 0x12)
-			switch(BufGPS[4])//pos 
-			{
-			case 0x2A:		
-#pragma region POS_VEL
-				for (i = 0; i < 4; i++)
-					int4ch.Ch[i] = BufGPS[i + 16];
-				gps.time = int4ch.Int*0.001;
-
-				for (i = 0; i < 24; i++)
-					gps_pv.ch[i] = BufGPS[i + 36];
-				gps.pos[0] = gps_pv.db[0];//*D2R;
-				gps.pos[1] = gps_pv.db[1];//*D2R;
-				gps.pos[2] = gps_pv.db[2];	
-
-				for (i = 0; i < 24; i++)
-					gps_pv.ch[i] = BufGPS[i + 104+28+16];
-				gps.hv = gps_pv.db[0];
-				gps.att = gps_pv.db[1];
-				gps.vv = gps_pv.db[2];
-				if (is_startCal) gps.cnt++;	
-				
-				gps.vel[0] = -gps.hv*sin(gps.att*D2R);
-				gps.vel[1] = gps.hv*cos(gps.att*D2R);
-				gps.vel[2] = gps.vv;
-				if (BufGPS[28] == 0)//solution computed
-					return 1;
-				else
-					return 0;
-				break;
-#pragma endregion POS_VEL
-			case 0x63:
-#pragma region VEL_POS
-				for (i = 0; i < 4; i++)
-					int4ch.Ch[i] = BufGPS[i + 16];
-				gps.time = int4ch.Int*0.001;
-
-				for (i = 0; i < 24; i++)
-					gps_pv.ch[i] = BufGPS[i + 28+16];
-				gps.hv = gps_pv.db[0];
-				gps.att = gps_pv.db[1];
-				gps.vv = gps_pv.db[2];	
-
-				for (i = 0; i < 24; i++)
-					gps_pv.ch[i] = BufGPS[i + 76 + 28 + 8];
-				gps.pos[0] = gps_pv.db[0];
-				gps.pos[1] = gps_pv.db[1];
-				gps.pos[2] = gps_pv.db[2];
-				if (is_startCal) gps.cnt++;
-
-				gps.vel[0] = -gps.hv*sin(gps.att*D2R);
-				gps.vel[1] = gps.hv*cos(gps.att*D2R);
-				gps.vel[2] = gps.vv;
-				if (BufGPS[28] == 0)//solution computed
-					return 1;
-				else
-					return 0;
-				break;
-#pragma endregion VEL_POS
-			default:break;
-			}			
+		gps.flag = gps.Conv(BufGPS);
+		if (is_startCal) gps.cnt++;
+		if (gps.flag) return 1;
+		else return 0;
 	}
 	else
 		return 0;
@@ -1636,7 +1578,7 @@ void CWindowsMainControlV1Dlg::SaveData()
 					fosn.ang[0], fosn.ang[1], fosn.ang[2]);
 		}
 #pragma region Datacz
-			if (TestModeNum == 1)//车载实验数据标准格式
+			if (TestModeNum == 1|| TestModeNum == 8)//车载实验数据标准格式
 				/*1~5 帧号录数统计，转台帧号/多功能版帧号/GPS有效性，fosn时间,gps时间，phins时间
 				6~11  陀螺加表（陀螺单位为 度/S）
 				12~14 解算姿态
@@ -2198,6 +2140,7 @@ UINT CWindowsMainControlV1Dlg::CardRec(LPVOID pParam)
 	}
 	return 0;
 }
+////半物理仿真数据线程
 UINT CWindowsMainControlV1Dlg::SimulateThread(LPVOID pParam)
 {
 	HWND hwnd = ((THREADPARAM*)pParam)->hwnd;
@@ -2281,83 +2224,85 @@ UINT CWindowsMainControlV1Dlg::PHINSThread(LPVOID pParam)
 	HWND hwnd = ((SOCKETPARAM*)pParam)->hwnd;
 	delete pParam;
 	static bool firstps = true;
+
 	while (is_start_phins)
 	{
-		int retval = recvfrom(sock, m_Recv_PHINS_Buff, 1024, 0, (SOCKADDR*)&addrFrom, &len);
-
-		double binary_value_31_bite = 180.0 / powl(2, 31);
-
+		int retval = recvfrom(sock, m_Recv_PHINS_Buff, 256, 0, (SOCKADDR*)&addrFrom, &len);
 		if (retval == 42 && m_Recv_PHINS_Buff[0] == 0x71)
+			phins.Conv(m_Recv_PHINS_Buff);
+		//获得phins数据且解算初始化OK之后，通过phins赋一次姿态和位置初值
+		if (firstps == true)
 		{
-			phins.cnt++;
-			data.ch_tem[3] = m_Recv_PHINS_Buff[1];
-			data.ch_tem[2] = m_Recv_PHINS_Buff[2];
-			data.ch_tem[1] = m_Recv_PHINS_Buff[3];
-			data.ch_tem[0] = m_Recv_PHINS_Buff[4];
-			phins.utc = data.int_tem + ((UINT)m_Recv_PHINS_Buff[5])*0.01;		//UTC time
-
-			data.ch_tem[3] = m_Recv_PHINS_Buff[6];
-			data.ch_tem[2] = m_Recv_PHINS_Buff[7];
-			data.ch_tem[1] = m_Recv_PHINS_Buff[8];
-			data.ch_tem[0] = m_Recv_PHINS_Buff[9];
-			phins.pos[0] = data.int_tem * binary_value_31_bite;		//纬度
-
-			data.ch_tem[3] = m_Recv_PHINS_Buff[10];
-			data.ch_tem[2] = m_Recv_PHINS_Buff[11];
-			data.ch_tem[1] = m_Recv_PHINS_Buff[12];
-			data.ch_tem[0] = m_Recv_PHINS_Buff[13];
-			phins.pos[1] = data.int_tem * binary_value_31_bite;      //经度
-
-
-			data.ch_tem[3] = m_Recv_PHINS_Buff[14];
-			data.ch_tem[2] = m_Recv_PHINS_Buff[15];
-			data.ch_tem[1] = m_Recv_PHINS_Buff[16];
-			data.ch_tem[0] = m_Recv_PHINS_Buff[17];
-			phins.pos[2] = data.int_tem * 0.01;                       //高度
-
-
-			Vel2CH.Ch[0] = m_Recv_PHINS_Buff[23];              //东向速度
-			Vel2CH.Ch[1] = m_Recv_PHINS_Buff[22];
-			phins.vel[0] = Vel2CH.Int*0.01;
-
-			Vel2CH.Ch[0] = m_Recv_PHINS_Buff[21];             //北向速度
-			Vel2CH.Ch[1] = m_Recv_PHINS_Buff[20];
-			phins.vel[1] = Vel2CH.Int*0.01;
-
-			Vel2CH.Ch[0] = m_Recv_PHINS_Buff[25];              //天向速度
-			Vel2CH.Ch[1] = m_Recv_PHINS_Buff[24];
-			phins.vel[2] = -Vel2CH.Int*0.01;
-
-			Ang2CH.Ch[1] = m_Recv_PHINS_Buff[28];
-			Ang2CH.Ch[0] = m_Recv_PHINS_Buff[29];
-			phins.ang[0] = Ang2CH.Int * 180.0 / 32768.0;	//纵摇
-
-			Ang2CH.Ch[1] = m_Recv_PHINS_Buff[26];
-			Ang2CH.Ch[0] = m_Recv_PHINS_Buff[27];
-			phins.ang[1] = Ang2CH.Int * 180.0 / 32768.0;	//横摇
-
-			Ang2CH.Ch[1] = m_Recv_PHINS_Buff[30];
-			Ang2CH.Ch[0] = m_Recv_PHINS_Buff[31];
-			phins.ang[2] = -Ang2CH.Int * 180.0 / 32768.0;	//航向
-
-			//获得phins数据且解算初始化OK之后，通过phins赋一次姿态和位置初值
-			if (firstps == true)
+			if (isStartCalOk)
 			{
-				if (isStartCalOk)
-				{
-					infor.pos[0] = phins.pos[0] * D2R;
-					infor.pos[1] = phins.pos[1] * D2R;
-					infor.pos[2] = initial_height;
-					avecmul(3, infor.att_angle, phins.ang, D2R);
-					ang2cnb(infor.cnb_mat, infor.att_angle);
-					cnb2q(infor.cnb_mat, infor.quart);
-					optq(infor.quart);
-					firstps = false;
-				}
-			}				
-		}
+				infor.pos[0] = phins.pos[0] * D2R;
+				infor.pos[1] = phins.pos[1] * D2R;
+				infor.pos[2] = initial_height;
+				avecmul(3, infor.att_angle, phins.ang, D2R);
+				ang2cnb(infor.cnb_mat, infor.att_angle);
+				cnb2q(infor.cnb_mat, infor.quart);
+				optq(infor.quart);
+				firstps = false;
+			}
+		}	
 	}
 
+	return 0;
+}
+////PC104数据接收线程
+UINT CWindowsMainControlV1Dlg::PC104RecThread(LPVOID pParam)
+{
+	SOCKET sock = ((SOCKETPARAM*)pParam)->sock;
+	HWND hwnd = ((SOCKETPARAM*)pParam)->hwnd;
+	delete pParam;
+	int len = sizeof(SOCKADDR);
+	char recvBuf[512] = { 0 };
+	SOCKADDR_IN addrFrom;
+	int i;	
+	DB9CH db9ch;
+	static long int rec_count = 0;
+	while (!pc104RecQuit)
+	{
+		int retval = recvfrom(sock, recvBuf, 512, 0, (SOCKADDR*)&addrFrom, &len);
+		if ( retval == 512)
+		{
+			memcpy(bufFOSN, recvBuf + 4, sizeof(bufFOSN));
+			fosn.Conv(bufFOSN);
+			for (i = 0; i < 3; i++)
+			{
+				IMUout.acce_b[i] = fosn.fb[i];
+				IMUout.gyro_b[i] = fosn.wb[i];
+			}
+			fosn.recnum++;
+
+			memcpy(BufGPS, recvBuf + 74, sizeof(BufGPS));
+			gps.flag = gps.Conv(BufGPS);
+			gps.cnt++;
+
+			memcpy(m_Recv_PHINS_Buff, recvBuf + 254, sizeof(m_Recv_PHINS_Buff));
+			phins.Conv(m_Recv_PHINS_Buff);			
+		
+			memcpy(db9ch.ch, recvBuf + 296, sizeof(db9ch.ch));
+			infor.att_angle[1] = db9ch.db[0];	infor.att_angle[2] = db9ch.db[1];	infor.att_angle[0] = db9ch.db[2];
+			infor.vel_n[1] = db9ch.db[3];		infor.vel_n[2] = db9ch.db[4];		infor.vel_n[0] = db9ch.db[5];
+			infor.pos[0] = db9ch.db[6] ;		infor.pos[1] = db9ch.db[7] ;		infor.pos[2] = db9ch.db[8];
+			DataTrans();
+
+			rec_count++;
+			if (1 == is_UpdateData)
+			{
+				if (rec_count % (refresh_time / 5) == 0)
+				{
+					::PostMessage(hwnd, WM_UPDATEDATA, NULL, NULL);
+				}
+			}
+			if (saveStart)
+			{
+				m_PRecNum++;
+				SaveData();
+			}
+		}
+	}
 	return 0;
 }
 #pragma endregion ProFunc

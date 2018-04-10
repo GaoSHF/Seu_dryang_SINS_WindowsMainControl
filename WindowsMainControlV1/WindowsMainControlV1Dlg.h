@@ -57,7 +57,7 @@ public:
 	bool Init_Net(void);
 	int edit_data_f;//数据输入的频率；
 	SOCKET m_socketPHINSDataRec;
-
+	SOCKET m_socketPC104DataRec;
 	
 	//Combo控制变量
 	CComboBox m_CoarseAignMode;
@@ -73,7 +73,7 @@ public:
 	static void NaviThread();//
 	static UINT PHINSThread(LPVOID pParam);
 	static UINT SimulateThread(LPVOID pParam);//仿真数据线程
-
+	static UINT PC104RecThread(LPVOID pParam);//PC104数据接收线程
 	static bool Rec200times(int &count200);//每接收数据200个返回1
 	static int FOSNChannel();
 	static void ZTChannel();	

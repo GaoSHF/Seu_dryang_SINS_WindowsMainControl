@@ -260,7 +260,7 @@ void Kal_Init_P_15(SKALMAN_15_3& temp_kal,char mode)              //20171108
 
 	memset(temp_kal.Q_state, 0, sizeof(temp_kal.Q_state));
 
-	temp_kal.Q_state[0][0] = powl(500 * ug, 2);
+	temp_kal.Q_state[0][0] = powl(50 * ug, 2);
 	temp_kal.Q_state[1][1] = temp_kal.Q_state[0][0];
 	temp_kal.Q_state[2][2] = temp_kal.Q_state[0][0];
 
