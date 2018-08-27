@@ -45,9 +45,11 @@ int save_time;//保存定时常数
 int m_save_time;//显示定时常数，倒计时
 int temp_cnt_s;//用于减去点倒计时已经过去的系统时间
 bool is_timeSave;
-
+//新FONS模式选择
+char FOSN_mode;
+int newFOSN_CardChannel, newFOSN_Com;
 //初始位置,显示用，单位为°
-double initial_latitude, initial_longitude, initial_height;
+double initial_pos[3];
 double real_pos[3];//计算位置误差用
 //模式选择
 int CoarseModeNum;
@@ -66,7 +68,7 @@ bool is_start_phins;
 bool mquit;//程序退出，用于线程循环退出控制
 bool pc104RecQuit;//pc104接收线程退出
 //FOSN数据
-BYTE bufFOSN[70];
+BYTE bufFOSN[180];
 //gps数据
 BYTE BufGPS[180];
 ////转台数据接收	
@@ -76,7 +78,7 @@ int m_cnt_err;//帧差
 //解算数据
 int m_cnt_s;
 //PHINS数据
-char m_Recv_PHINS_Buff[256];
+char m_Recv_PHINS_Buff[42];
 
 //读数仿真模式
 READSIMULATION RS_para;
@@ -89,6 +91,16 @@ int m_PRecNum;//纯录数录取的数据量
 int datanavinum = 0;
 bool temp_test = true;
 double temp_ang[3], temp_pos[3], temp_v[3];
+
+//PC104录数
+int send_enter_num=0;
+int Kal_enter_num=0;
+int Kal_exit_num=0;
+int send_exit_num=0;
+int pc104state = 0;
+
+
+
 #pragma endregion VarDef 
 
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
@@ -125,10 +137,16 @@ CWindowsMainControlV1Dlg::CWindowsMainControlV1Dlg(CWnd* pParent /*=NULL*/)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 
-	initial_latitude = 32.05731;
-	initial_longitude = 118.786355;
-	initial_height = 31;
-	Init_CardVar();
+	initial_pos[0] = 32.05731;
+	initial_pos[1] = 118.786355;
+	initial_pos[2] = 31;	
+	fosn.input_p[0] = initial_pos[0];
+	fosn.input_p[1] = initial_pos[1];
+	fosn.input_p[2] = initial_pos[2];
+
+	FOSN_mode = 0x01;
+	newFOSN_CardChannel = 0;
+	newFOSN_Com = 0;
 
 	is_SingleFile = 1;
 
@@ -148,6 +166,8 @@ CWindowsMainControlV1Dlg::CWindowsMainControlV1Dlg(CWnd* pParent /*=NULL*/)
 	is_cardReset = 1;
 	mquit = 0;
 	pc104RecQuit = true;
+
+	Init_CardVar();
 	init_var();
 }
 void CWindowsMainControlV1Dlg::DoDataExchange(CDataExchange* pDX)
@@ -157,6 +177,8 @@ void CWindowsMainControlV1Dlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO_FineAlignMode, m_FineAignMode);
 	DDX_Control(pDX, IDC_COMBO_NavigationMode, m_NaviMode);
 	DDX_Control(pDX, IDC_COMBO_HeightMode, m_HeightMode);
+	DDX_Control(pDX, IDC_COMBO_B_Amode, m_BAlignMode);
+	DDX_Control(pDX, IDC_COMBO_B_Atime, m_BAlignTime);
 	DDX_Text(pDX, IDC_COARSE_TIME, sysc.coarse_time);
 	DDX_Text(pDX, IDC_FINE_LEVEL, sysc.fine_level);
 	DDX_Text(pDX, IDC_FINE_AZIMUTH, sysc.fine_azimuth);
@@ -213,9 +235,9 @@ void CWindowsMainControlV1Dlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_ERR_LocationX, INScal.err_pos[0]);
 	DDX_Text(pDX, IDC_ERR_LocationY, INScal.err_pos[1]);
 	DDX_Text(pDX, IDC_ERR_Location, INScal.err_pos[2]);
-	DDX_Text(pDX, IDC_LATITUDE0, initial_latitude);
-	DDX_Text(pDX, IDC_LONGITUDE0, initial_longitude);
-	DDX_Text(pDX, IDC_HEIGHT0, initial_height);
+	DDX_Text(pDX, IDC_LATITUDE0, initial_pos[0]);
+	DDX_Text(pDX, IDC_LONGITUDE0, initial_pos[1]);
+	DDX_Text(pDX, IDC_HEIGHT0, initial_pos[2]);
 	DDX_Text(pDX, IDC_RUNNING_TIME, m_cnt_s);
 	DDX_Text(pDX, IDC_PHINS_Agnle_X, phins.ang[0]);
 	DDX_Text(pDX, IDC_PHINS_Agnle_Y, phins.ang[1]);
@@ -238,6 +260,32 @@ void CWindowsMainControlV1Dlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_TEXT_MODE, m_TestMode);
 	DDX_Text(pDX, IDC_STATE, sysc.state);
 	DDX_Text(pDX, IDC_Data_F, edit_data_f);
+	DDX_Text(pDX, IDC_EDIT_B_GPSYX, fosn.GPSmode);
+	DDX_Text(pDX, IDC_EDIT_B_InputVx, fosn.input_v[0]);
+	DDX_Text(pDX, IDC_EDIT_B_InputVy, fosn.input_v[1]);
+	DDX_Text(pDX, IDC_EDIT_B_InputVz, fosn.input_v[2]);
+	DDX_Text(pDX, IDC_EDIT_B_InputLati, fosn.input_p[0]);
+	DDX_Text(pDX, IDC_EDIT_B_InputLongi, fosn.input_p[1]);
+	DDX_Text(pDX, IDC_EDIT_B_InputHeight, fosn.input_p[2]);
+	DDX_Text(pDX, IDC_EDIT_B_WorkingMode, fosn.WorkingModeS);
+	DDX_Text(pDX, IDC_EDIT_B_IntegratedMode, fosn.IntegratedModeS);
+	DDX_Text(pDX, IDC_EDIT_B_IPx, fosn.IPos[0]);
+	DDX_Text(pDX, IDC_EDIT_B_IPy, fosn.IPos[1]);
+	DDX_Text(pDX, IDC_EDIT_B_IPz, fosn.IPos[2]);
+	DDX_Text(pDX, IDC_EDIT_B_IVx, fosn.IVel[0]);
+	DDX_Text(pDX, IDC_EDIT_B_IVy, fosn.IVel[1]);
+	DDX_Text(pDX, IDC_EDIT_B_IVz, fosn.IVel[2]);
+	DDX_Text(pDX, IDC_EDIT_B_IAx, fosn.IAtt[0]);
+	DDX_Text(pDX, IDC_EDIT_B_IAy, fosn.IAtt[1]);
+	DDX_Text(pDX, IDC_EDIT_B_IAz, fosn.IAtt[2]);
+	DDX_Text(pDX, IDC_EDIT_B_GPx, fosn.GPos[0]);
+	DDX_Text(pDX, IDC_EDIT_B_GPy, fosn.GPos[1]);
+	DDX_Text(pDX, IDC_EDIT_B_GPz, fosn.GPos[2]);
+	DDX_Text(pDX, IDC_EDIT_B_GVx, fosn.GVel[0]);
+	DDX_Text(pDX, IDC_EDIT_B_GVy, fosn.GVel[1]);
+	DDX_Text(pDX, IDC_EDIT_B_GVz, fosn.GVel[2]);
+	DDX_Control(pDX, IDC_COMBO_B_CardChannel, m_BCardChannel);
+	DDX_Control(pDX, IDC_COMBO_B_Com, m_BCom);
 }
 BEGIN_MESSAGE_MAP(CWindowsMainControlV1Dlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
@@ -264,6 +312,8 @@ BEGIN_MESSAGE_MAP(CWindowsMainControlV1Dlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_Calibration, &CWindowsMainControlV1Dlg::OnBnClickedBtnCalibration)
 	ON_CBN_SELCHANGE(IDC_TEXT_MODE, &CWindowsMainControlV1Dlg::OnCbnSelchangeTextMode)
 	ON_CBN_SELCHANGE(IDC_COMBO_FineAlignMode, &CWindowsMainControlV1Dlg::OnCbnSelchangeComboFinealignmode)
+	ON_BN_CLICKED(IDC_BTN_B_InputCtrl, &CWindowsMainControlV1Dlg::OnBnClickedBtnBInputctrl)
+	ON_BN_CLICKED(IDC_BTN_FOSNSWITCH, &CWindowsMainControlV1Dlg::OnBnClickedBtnFosnswitch)
 END_MESSAGE_MAP()
 
 // CWindowsMainControlV1Dlg 消息处理程序
@@ -303,6 +353,7 @@ BOOL CWindowsMainControlV1Dlg::OnInitDialog()
 	init_mainmode();
 	Init_Net();
 	timeBeginPeriod(TimerRes);
+
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 void CWindowsMainControlV1Dlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -369,16 +420,26 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnStartcard()
 		{
 		case 1:if(!is_start_phins) OnBnClickedBtnStartphins(); break;
 		case 2: case 3: sysc.state = _T("纯录数模式"); break;
+		case 4: sysc.state = _T("新FOSN测试模式"); break;
 		default:break;
 		}
-		Init_Card(ghWnd, NaviModeNum, 0x0f);
+		int cn, com;
+		char var = 0x00;
+		newFOSN_CardChannel = m_BCardChannel.GetCurSel();
+		newFOSN_Com = m_BCom.GetCurSel();
+		var = (char)((newFOSN_CardChannel & 0x0f) << 4 )+ (char)(newFOSN_Com & 0x0f);
+		Init_Card(ghWnd, FOSN_mode, 0x0f, var);
 		Sio_Rx_ResetFIFO(hCard, 0);//复位板卡
 		Sio_Rx_ResetFIFO(hCard, 1);
 		Sio_Rx_ResetFIFO(hCard, 2);
+		Sio_Rx_ResetFIFO(hCard, 3);
 		CWinThread* Card_Thread;
-		THREADPARAM  *phWndParam = new THREADPARAM;
-		phWndParam->hwnd = m_hWnd;
-		if (!(Card_Thread = AfxBeginThread(CardRec, (LPVOID)phWndParam)))
+		//THREADPARAM  *phWndParam = new THREADPARAM;
+		//phWndParam->hwnd = m_hWnd;
+		SOCKETPARAM  *pRecvParam = new SOCKETPARAM;
+		pRecvParam->hwnd = m_hWnd;
+		pRecvParam->sock = m_socketPHINSDataRec;
+		if (!(Card_Thread = AfxBeginThread(CardRec, (LPVOID)pRecvParam)))
 			return;
 
 		UpdateData(true);
@@ -390,7 +451,7 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnStartcard()
 		GetDlgItem(IDC_BTN_StartCal)->EnableWindow(TRUE);
 		m_TestMode.EnableWindow(FALSE);
 	//	m_NaviMode.EnableWindow(FALSE);
-
+		if(FOSN_mode==0x01) GetDlgItem(IDC_BTN_B_InputCtrl)->EnableWindow(TRUE);
 	}
 	else
 	{
@@ -400,7 +461,7 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnStartcard()
 		GetDlgItem(IDC_BTN_StartCal)->EnableWindow(FALSE);
 		m_TestMode.EnableWindow(TRUE);
 	//	m_NaviMode.EnableWindow(TRUE);
-
+		if (FOSN_mode == 0x01) GetDlgItem(IDC_BTN_B_InputCtrl)->EnableWindow(FALSE);
 	}
 }
 void CWindowsMainControlV1Dlg::OnBnClickedBtnStartphins()
@@ -412,11 +473,11 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnStartphins()
 	CString str;
 	if (is_start_phins)
 	{		
-		SOCKETPARAM  *pRecvParam = new SOCKETPARAM;
-		pRecvParam->hwnd = m_hWnd;
-		pRecvParam->sock = m_socketPHINSDataRec;
-		if (!(phins_Thread = AfxBeginThread(PHINSThread, (LPVOID)pRecvParam)))
-			return;
+	//	SOCKETPARAM  *pRecvParam = new SOCKETPARAM;
+	//	pRecvParam->hwnd = m_hWnd;
+	//	pRecvParam->sock = m_socketPHINSDataRec;
+	//	if (!(phins_Thread = AfxBeginThread(PHINSThread, (LPVOID)pRecvParam)))
+	//		return;
 		str = _T("PHINS接收停止");
 		h1->SetWindowText(str);
 	}
@@ -587,6 +648,11 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnSavepath()
 		fid_PHINS = NULL;
 		fid_gps = NULL;
 		fid_zt = NULL;
+		if (TestModeNum == 1)
+		{
+			DocName = Filename + _T("phins") + Str1;
+			fopen_s(&fid_PHINS, DocName + ".txt", "w+");
+		}
 	}
 	GetDlgItem(IDC_BTN_SAVEALL)->EnableWindow(TRUE);
 	GetDlgItem(IDC_BTN_SingleFile)->EnableWindow(FALSE);
@@ -629,12 +695,12 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnSinglefile()
 	CString str;
 	if (is_SingleFile)
 	{
-		str = _T("当前为单文件存数");
+		str = _T("单文件模式");
 		h1->SetWindowText(str);
 	}
 	else
 	{
-		str = _T("当前为多文件存数");
+		str = _T("多文件模式");
 		h1->SetWindowText(str);
 	}
 }
@@ -783,31 +849,32 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnCalibration()
 	nRes = cali.DoModal();
 	if (11 == nRes)//预设值1，车载，吴梅标定于2017年12月
 	{
-		calipara.Eg_ang[0] = 2.0317e-4;//xy
-		calipara.Eg_ang[1] = -4.0032e-6;//yx
-		calipara.Eg_ang[2] = -2.04252e-5;//yz
-		calipara.Eg_ang[3] = 8.4158e-5;//zy
-		calipara.Eg_ang[4] = 7.412e-4;//xz
-		calipara.Eg_ang[5] = -5.80456e-4;//zx
-		calipara.Cg[0] = 1.000399;
-		calipara.Cg[1] = 1.0004312;
-		calipara.Cg[2] = 1.00028645;
-		calipara.bias_gyro[0] = -7.076e-8;
-		calipara.bias_gyro[1] = -7.373e-8;
-		calipara.bias_gyro[2] = -2.4168e-9;
-		
-		calipara.Ea_ang[0] = 1.3127e-04;//xy
-		calipara.Ea_ang[1] = 6.3079e-06;//yx
-		calipara.Ea_ang[2] = 4.0829e-05;//yz
-		calipara.Ea_ang[3] = 9.1177e-05;//zy
-		calipara.Ea_ang[4] = 7.3794e-04;//xz
-		calipara.Ea_ang[5] = -4.9893e-04;//zx
-		calipara.Ca[0] = 1.000194;
-		calipara.Ca[1] = 1.00033;
-		calipara.Ca[2] = 1.000253;
-		calipara.bias_acce[0] = -0.01108;
-		calipara.bias_acce[1] = -0.006;
-		calipara.bias_acce[2] = -0.006042;
+		calipara.Eg_ang[0] = 3.046019191528669e-4;//xy
+		calipara.Eg_ang[1] = -1.7802183389492598e-4;//yx
+		calipara.Eg_ang[2] = -6.956340435718855e-5;//yz
+		calipara.Eg_ang[3] = 1.252617556062624e-4;//zy
+		calipara.Eg_ang[4] = 7.30090183396501e-4;//xz
+		calipara.Eg_ang[5] = -5.749862377277779e-4;//zx
+		calipara.Cg[0] = 1.0003283076658953;
+		calipara.Cg[1] = 1.0003412400462968;
+		calipara.Cg[2] = 1.000234183849344;
+		calipara.bias_gyro[0] = -5.0025227012085416e-8;
+		calipara.bias_gyro[1] = -6.39820455776871e-8;
+		calipara.bias_gyro[2] = 4.456602407512333e-8;
+
+		calipara.Ea_ang[0] = 2.4568260626161263e-4;//xy
+		calipara.Ea_ang[1] = -1.1246114832622076e-4;//yx
+		calipara.Ea_ang[2] = -1.9226250271772838e-5;//yz
+		calipara.Ea_ang[3] = 1.3065903901150844E-4;//zy
+		calipara.Ea_ang[4] = 6.937175570974233E-4;//xz
+		calipara.Ea_ang[5] = -4.93765739096177E-4;//zx
+		calipara.Ca[0] = 1.0001696494372259;
+		calipara.Ca[1] = 1.0003289974034368;
+		calipara.Ca[2] = 1.0002467285467842;
+		calipara.bias_acce[0] = -0.010472247184738331;
+		calipara.bias_acce[1] = -0.00558761132512579;// 
+		calipara.bias_acce[2] = -0.005500361833946822;//
+
 		calipara.Eang2mat();
 		if (!is_UpdateData)
 			OnBnClickedBtnStoprefresh();
@@ -829,6 +896,82 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnCalibration()
 		return;
 	}
 
+}
+void CWindowsMainControlV1Dlg::OnBnClickedBtnBInputctrl()
+{	
+	// TODO: 在此添加控件通知处理程序代码
+	WORD rt;
+	BYTE sendbuf[36] = { 0 };
+	int i, CRC = 32;
+	UpdateData(true);
+	sendbuf[0] = 0x55; sendbuf[1] = 0xaa; sendbuf[2] = 0x20;
+	switch (m_BAlignTime.GetCurSel())
+	{
+	case 0:sendbuf[3] = 0x01; break;
+	case 1:sendbuf[3] = 0x02; break;
+	case 2:sendbuf[3] = 0x03; break;
+	case 3:sendbuf[3] = 0x04; break;
+	case 4:sendbuf[3] = 0x05; break;
+	}
+	switch (m_BAlignMode.GetCurSel())
+	{
+	case 0:sendbuf[4] = 0x01; break;
+	case 1:sendbuf[4] = 0x02; break;
+	case 2:sendbuf[4] = 0x03; break;
+	case 3:sendbuf[4] = 0x04; break;
+	case 4:sendbuf[4] = 0x05; break; 
+	}
+
+	sendbuf[5] = (int)(fosn.input_p[1] * 1000000.0);
+	sendbuf[6] = ((int)(fosn.input_p[1] * 1000000.0)) >> 8;
+	sendbuf[7] = ((int)(fosn.input_p[1] * 1000000.0)) >> 16;
+	sendbuf[8] = ((int)(fosn.input_p[1] * 1000000.0)) >> 24;
+	sendbuf[9] = (int)(fosn.input_p[0] * 1000000.0);
+	sendbuf[10] = ((int)(fosn.input_p[0] * 1000000.0)) >> 8;
+	sendbuf[11] = ((int)(fosn.input_p[0] * 1000000.0)) >> 16;
+	sendbuf[12] = ((int)(fosn.input_p[0] * 1000000.0)) >> 24;
+	sendbuf[13] = (short)(fosn.input_p[2] * 10.0);
+	sendbuf[14] = ((short)(fosn.input_p[2] * 10.0)) >> 8;
+
+	sendbuf[15] = (int)(fosn.input_v[0] * 100.0);
+	sendbuf[16] = ((int)(fosn.input_v[0] * 100.0)) >> 8;
+	sendbuf[17] = (int)(fosn.input_v[1] * 100.0);
+	sendbuf[18] = ((int)(fosn.input_v[1] * 100.0)) >> 8;
+	sendbuf[19] = (int)(fosn.input_v[2] * 100.0);
+	sendbuf[20] = ((int)(fosn.input_v[2] * 100.0)) >> 8;
+
+	for (i = 0; i<32; i++)
+		CRC += sendbuf[i + 3];
+	sendbuf[35] = (CRC & 0xFF);
+	while (1)
+	{
+		if (0x01 == Sio_Tx_FIFOSTR(hCard, 0))
+		{
+			Sio_TxWrite(hCard, 0, sendbuf, 36, &rt);
+		}
+		break;
+	}
+}
+void CWindowsMainControlV1Dlg::OnBnClickedBtnFosnswitch()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	
+	CWnd *h1;
+	h1 = GetDlgItem(IDC_BTN_FOSNSWITCH);		//指向控件的caption
+	CString str;
+	if (FOSN_mode==0x00)
+	{
+		FOSN_mode = 0x01;
+		str = _T("新FOSN模式");
+		h1->SetWindowText(str);
+
+	}
+	else
+	{
+		FOSN_mode = 0x00;
+		str = _T("老FOSN模式");
+		h1->SetWindowText(str);
+	}
 }
 ////实验模式改选事件
 void CWindowsMainControlV1Dlg::OnCbnSelchangeTextMode()
@@ -893,6 +1036,7 @@ void CWindowsMainControlV1Dlg::OnCbnSelchangeTextMode()
 
 	if (m_TestMode.GetCurSel() == 8)
 	{
+		TestModeNum = 8;
 		pc104RecQuit = false;
 		GetDlgItem(IDC_BTN_SAVEPATH)->EnableWindow(TRUE);	
 		GetDlgItem(IDC_BTN_StartCard)->EnableWindow(FALSE);
@@ -903,14 +1047,20 @@ void CWindowsMainControlV1Dlg::OnCbnSelchangeTextMode()
 		phWndParam->sock = m_socketPC104DataRec;
 		if (!(pc104_Thread = AfxBeginThread(PC104RecThread, (LPVOID)phWndParam)))
 			return;
+
+		SOCKETPARAM  *pRecvParam = new SOCKETPARAM;
+		pRecvParam->hwnd = m_hWnd;
+		pRecvParam->sock = m_socketPHINSDataRec;
+		if (!(phins_Thread = AfxBeginThread(PHINSThread, (LPVOID)pRecvParam)))
+			return;
 	}
-	else
+	/*else
 	{
 		pc104RecQuit = true;
 		GetDlgItem(IDC_BTN_SAVEPATH)->EnableWindow(FALSE);
 		GetDlgItem(IDC_BTN_StartCard)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BTN_StartPhins)->EnableWindow(TRUE);
-	}
+	}*/
 }
 //精对准下才启用水平和航向对准时间
 void CWindowsMainControlV1Dlg::OnCbnSelchangeComboFinealignmode()
@@ -1041,7 +1191,7 @@ bool CWindowsMainControlV1Dlg::init_Combo()
 	}
 	m_HeightMode.SetCurSel(3);
 
-	CString str6[] = { _T("转台实验"),_T("车载实验"),_T("纯录数（不含phins）"),_T("纯录数（含phins）"),_T("备用1"),_T("备用2"),_T("读数仿真"),_T("模拟数据仿真"),_T("PC104数据接收") };
+	CString str6[] = { _T("转台实验"),_T("车载实验"),_T("纯录数（不含phins）"),_T("纯录数（含phins）"),_T("新FOSN测试录数"),_T("备用2"),_T("读数仿真"),_T("模拟数据仿真"),_T("PC104数据接收") };
 	for (i = 0; i < 9; i++)
 	{
 		judge_tf = m_TestMode.InsertString(i, str6[i]);
@@ -1052,6 +1202,54 @@ bool CWindowsMainControlV1Dlg::init_Combo()
 		}
 	}
 	m_TestMode.SetCurSel(0);
+
+	CString str7[] = { _T("自动零速修正"),_T("惯性/卫星组合"),_T("惯性/里程计组合"),_T("惯性/电磁计程仪组合"),_T("惯性/DVL组合") };
+	for (i = 0; i < 5; i++)
+	{
+		judge_tf = m_BAlignMode.InsertString(i, str7[i]);
+		if ((judge_tf == CB_ERR) || (judge_tf == CB_ERRSPACE))
+		{
+			MessageBox(_T("build baud error!"));
+			return false;
+		}
+	}
+	m_BAlignMode.SetCurSel(0);
+	
+	CString str8[] = { _T("5min"),_T("10min"),_T("1h"),_T("4h"),_T("12h") };
+	for (i = 0; i < 5; i++)
+	{
+		judge_tf = m_BAlignTime.InsertString(i, str8[i]);
+		if ((judge_tf == CB_ERR) || (judge_tf == CB_ERRSPACE))
+		{
+			MessageBox(_T("build baud error!"));
+			return false;
+		}
+	}
+	m_BAlignTime.SetCurSel(1);
+	
+	CString str9[] = { _T("通道1"),_T("通道2"),_T("通道3"),_T("通道4") };
+	for (i = 0; i < 4; i++)
+	{
+		judge_tf = m_BCardChannel.InsertString(i, str9[i]);
+		if ((judge_tf == CB_ERR) || (judge_tf == CB_ERRSPACE))
+		{
+			MessageBox(_T("build baud error!"));
+			return false;
+		}
+	}
+	m_BCardChannel.SetCurSel(0);
+
+	CString str10[] = { _T("com0"),_T("com1"),_T("com2") };
+	for (i = 0; i < 3; i++)
+	{
+		judge_tf = m_BCom.InsertString(i, str10[i]);
+		if ((judge_tf == CB_ERR) || (judge_tf == CB_ERRSPACE))
+		{
+			MessageBox(_T("build baud error!"));
+			return false;
+		}
+	}
+	m_BCom.SetCurSel(0);
 	return true;
 }
 ////网络初始化
@@ -1153,6 +1351,11 @@ bool CWindowsMainControlV1Dlg::Rec200times(int &count200)
 		return 0;
 	}
 }
+//定时器回调函数
+void CALLBACK TimeDalay(UINT uID, UINT uMsg, DWORD dwUsers, DWORD dw1, DWORD dw2)
+{
+	RS_para.canCal = 1;
+}
 #pragma endregion SmallFuc
 
 ///////////板卡数据接收处理函数/////////////////
@@ -1183,18 +1386,44 @@ int CWindowsMainControlV1Dlg::FOSNChannel()
 	}
 	return 0;
 }
+int CWindowsMainControlV1Dlg::FOSNnChannel() //newFosn
+{
+	WORD rt = 0;
+	int i;
+
+	if (strm[newFOSN_CardChannel].IsProtocol)
+	{
+		//	Protocol Mode		
+		if (Sio_Rx_IsFrameOver(hCard, newFOSN_CardChannel))
+		{
+			Sio_ReadFrame(hCard, newFOSN_CardChannel, bufFOSN, &rt);
+			fosn.Conv2(bufFOSN,newFOSN_Com);
+			for (i = 0; i < 3; i++)
+			{
+				IMUout.acce_b[i] = fosn.fb[i];
+				IMUout.gyro_b[i] = fosn.wb[i];
+			}
+
+			if (is_startCal)fosn.recnum++;
+			return 1;
+		}
+		else
+			return 0;
+	}
+	return 0;
+}
 void CWindowsMainControlV1Dlg::ZTChannel()
 {
 	WORD rt = 0;
 	static int old_buf2 = 0;
-	if (strm[0].IsProtocol)
+	if (strm[1].IsProtocol)
 	{
 		//	Protocol Mode
 #ifndef CARD_DEBUG
-		if (Sio_Rx_IsFrameOver(hCard, 0))
+		if (Sio_Rx_IsFrameOver(hCard, 1))
 		{
 			old_buf2 = BufZT[2];
-			Sio_ReadFrame(hCard, 0, BufZT, &rt);
+			Sio_ReadFrame(hCard, 1, BufZT, &rt);
 
 			if (BufZT[0] == 0xFF && BufZT[1] == 0xFF)
 			{
@@ -1258,23 +1487,25 @@ int CWindowsMainControlV1Dlg::GPSChannel()
 void CWindowsMainControlV1Dlg::CalVarInit(char mode)
 {
 	if (mode == 1)
-	{
-		initial_latitude = phins.pos[0];
-		initial_longitude = phins.pos[1];
-		initial_height = phins.pos[2];
+	{		
+		memcpy(initial_pos, phins.pos, sizeof(phins.pos));
+		initial_pos[0] = fosn.input_p[0];
+		initial_pos[1] = fosn.input_p[1];
+		initial_pos[2] = fosn.input_p[2];
 	}	
-	infor.pos[0] = initial_latitude* D2R;
-	infor.pos[1] = initial_longitude* D2R;
-	infor.pos[2] = initial_height;
+	infor.pos[0] = initial_pos[0]* D2R;
+	infor.pos[1] = initial_pos[1]* D2R;
+	infor.pos[2] = initial_pos[2];
 	memcpy(real_pos, infor.pos, sizeof(infor.pos));
-	infor.initial_pos[0] = initial_latitude* D2R;
-	infor.initial_pos[1] = initial_longitude* D2R;
-	infor.initial_pos[2] = initial_height;
+	infor.initial_pos[0] = initial_pos[0]* D2R;
+	infor.initial_pos[1] = initial_pos[1]* D2R;
+	infor.initial_pos[2] = initial_pos[2];
 
 }
 void CWindowsMainControlV1Dlg::getfileData()
 {
 	double temp;
+	int temp2;
 	if (feof(RS_para.RdataFilefid))//读到结尾
 	{
 		RS_para.RS_mode = 0;
@@ -1292,7 +1523,7 @@ void CWindowsMainControlV1Dlg::getfileData()
 	if (RS_para.file_mode == 0)//对应车载录数模式//2017.12.12改成47位，首日的录数已经不适用此
 	{
 		fscanf_s(RS_para.RdataFilefid, "%d,%d,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf\n",
-			&fosn.recnum, &ZT.cnt, &fosn.time, &gps.time, &phins.utc,
+			&fosn.recnum, &gps.flag, &fosn.time, &gps.time, &phins.utc,
 			&IMUout.gyro_b[0], &IMUout.gyro_b[1], &IMUout.gyro_b[2],
 			&IMUout.acce_b[0], &IMUout.acce_b[1], &IMUout.acce_b[2],
 			&temp, &temp, &temp,
@@ -1393,6 +1624,30 @@ void CWindowsMainControlV1Dlg::getfileData()
 		real_pos[0] = real_pos[0] * D2R;
 		real_pos[1] = real_pos[1] * D2R;
 	}
+	if (RS_para.file_mode == 6)//对应PC104车载录数模式
+	{
+		fscanf_s(RS_para.RdataFilefid, "%d,%d,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%d,%d,%d\n",
+			&fosn.recnum, &gps.flag, &fosn.time, &gps.time, &phins.utc,
+			&IMUout.gyro_b[0], &IMUout.gyro_b[1], &IMUout.gyro_b[2],
+			&IMUout.acce_b[0], &IMUout.acce_b[1], &IMUout.acce_b[2],
+			&temp, &temp, &temp,
+			&temp, &temp, &temp,
+			&temp, &temp, &temp,
+			&phins.ang[0], &phins.ang[1], &phins.ang[2],
+			&phins.vel[0], &phins.vel[1], &phins.vel[2],
+			&phins.pos[0], &phins.pos[1], &phins.pos[2],
+			&gps.pos[0], &gps.pos[1], &gps.pos[2],
+			&gps.vel[0], &gps.vel[1], &gps.vel[2],
+			&fosn.ang[0], &fosn.ang[1], &fosn.ang[2],
+			&fosn.vel[0], &fosn.vel[1], &fosn.vel[2],
+			&fosn.pos[0], &fosn.pos[1], &fosn.pos[2],
+			&temp, &temp, &temp,&temp2, &temp2, &temp2);
+		memcpy(real_pos, phins.pos, sizeof(phins.pos));
+		memcpy(ZT.ang, phins.ang, sizeof(phins.ang));
+		real_pos[0] = real_pos[0] * D2R;
+		real_pos[1] = real_pos[1] * D2R;
+
+	}
 	if (RS_para.file_mode == 7)//haishi数据测试
 	{
 	//	1~3陀螺；4~6加表；7~9 原始计算姿态；10~12 原始计算速度； 13~15 外部参考姿态；16~18外部参考速度；19纬度 20经度,21高，22计数
@@ -1419,14 +1674,14 @@ void CWindowsMainControlV1Dlg::getfileData()
 	{
 		if (RS_para.ReadInitPos == 1)//读取初始位置
 		{
-			if (RS_para.file_mode == 0)
+			if (RS_para.file_mode == 0|| RS_para.file_mode == 6)
 			{
 				infor.pos[0] = phins.pos[0] * D2R;
 				infor.pos[1] = phins.pos[1] * D2R;	
 				infor.pos[2] = phins.pos[2];
-				initial_latitude = infor.pos[0] * R2D;
-				initial_longitude = infor.pos[1] * R2D;
-				initial_height = infor.pos[2];
+				initial_pos[0] = infor.pos[0] * R2D;
+				initial_pos[1] = infor.pos[1] * R2D;
+				initial_pos[2] = infor.pos[2];
 				infor.vel_n[0] = phins.vel[0];       //20171129
 				infor.vel_n[1] = phins.vel[1];
 				infor.vel_n[2] = phins.vel[2];
@@ -1435,21 +1690,21 @@ void CWindowsMainControlV1Dlg::getfileData()
 			{
 				memcpy(infor.initial_pos, INScal.pos, sizeof(INScal.pos));
 				memcpy(infor.pos, infor.initial_pos, sizeof(infor.initial_pos));
-				initial_latitude = infor.pos[0];
-				initial_longitude = infor.pos[1];
-				initial_height = infor.pos[2];
+				initial_pos[0] = infor.pos[0];
+				initial_pos[1] = infor.pos[1];
+				initial_pos[2] = infor.pos[2];
 			}
 			if (RS_para.file_mode == 3 || RS_para.file_mode == 4 )
 			{
-				initial_latitude = fosn.pos[0];
-				initial_longitude = fosn.pos[1];
-				initial_height = fosn.pos[2];
-				infor.pos[0] = initial_latitude* D2R;
-				infor.pos[1] = initial_longitude* D2R;
-				infor.pos[2] = initial_height;
-				infor.initial_pos[0] = initial_latitude* D2R;
-				infor.initial_pos[1] = initial_longitude* D2R;
-				infor.initial_pos[2] = initial_height;
+				initial_pos[0] = fosn.pos[0];
+				initial_pos[1] = fosn.pos[1];
+				initial_pos[2] = fosn.pos[2];
+				infor.pos[0] = initial_pos[0]* D2R;
+				infor.pos[1] = initial_pos[1]* D2R;
+				infor.pos[2] = initial_pos[2];
+				infor.initial_pos[0] = initial_pos[0]* D2R;
+				infor.initial_pos[1] = initial_pos[1]* D2R;
+				infor.initial_pos[2] = initial_pos[2];
 				
 			}
 			if (RS_para.file_mode == 5)
@@ -1457,9 +1712,9 @@ void CWindowsMainControlV1Dlg::getfileData()
 				infor.pos[0] = phins.pos[0] * D2R;
 				infor.pos[1] = phins.pos[1] * D2R;
 				infor.pos[2] = phins.pos[2];
-				initial_latitude = infor.pos[0] * R2D;
-				initial_longitude = infor.pos[1] * R2D;
-				initial_height = infor.pos[2];
+				initial_pos[0] = infor.pos[0] * R2D;
+				initial_pos[1] = infor.pos[1] * R2D;
+				initial_pos[2] = infor.pos[2];
 				infor.vel_n[0] = phins.vel[0];       //20171129
 				infor.vel_n[1] = phins.vel[1];
 				infor.vel_n[2] = phins.vel[2];
@@ -1469,9 +1724,9 @@ void CWindowsMainControlV1Dlg::getfileData()
 				infor.pos[0] = phins.pos[0] * D2R;
 				infor.pos[1] = phins.pos[1] * D2R;
 				infor.pos[2] = phins.pos[2] * D2R;
-				initial_latitude = phins.pos[0];
-				initial_longitude = phins.pos[1];
-				initial_height = phins.pos[2];
+				initial_pos[0] = phins.pos[0];
+				initial_pos[1] = phins.pos[1];
+				initial_pos[2] = phins.pos[2];
 				memcpy(infor.vel_n, phins.vel, sizeof(phins.vel));
 
 				infor.att_angle[0] = fosn.ang[0] * D2R;
@@ -1578,7 +1833,7 @@ void CWindowsMainControlV1Dlg::SaveData()
 					fosn.ang[0], fosn.ang[1], fosn.ang[2]);
 		}
 #pragma region Datacz
-			if (TestModeNum == 1|| TestModeNum == 8)//车载实验数据标准格式
+		if (TestModeNum == 1)//车载实验数据标准格式
 				/*1~5 帧号录数统计，转台帧号/多功能版帧号/GPS有效性，fosn时间,gps时间，phins时间
 				6~11  陀螺加表（陀螺单位为 度/S）
 				12~14 解算姿态
@@ -1592,52 +1847,72 @@ void CWindowsMainControlV1Dlg::SaveData()
 				39~41 FOSN速度
 				42~44 FOSN位置
 				45~47 空（转台姿态）
-				|陀螺                 加表                |解算姿态            速度                  位置                |PS姿态               速度                位置                 |GPS位置              速度                |FOSN姿态            速度                 位置    */
+			                                                 	|陀螺                 加表                |解算姿态            速度                  位置                |PS姿态               速度                位置                 |GPS位置              速度                |FOSN姿态            速度                 位置    */
+		{
+			if (PureINSModeNum == PURE_SINS_TRANSVERSE)
 			{
-				if (PureINSModeNum == PURE_SINS_TRANSVERSE)
-				{
-					fprintf_s(fid_Cal, "%d,%d,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf\n",
-						fosn.recnum, ZT.cnt, fosn.time, gps.time, phins.utc,
-						IMUout.gyro_b[0], IMUout.gyro_b[1], IMUout.gyro_b[2],
-						IMUout.acce_b[0], IMUout.acce_b[1], IMUout.acce_b[2],
-						INScal.ang[0], INScal.ang[1], INScal.ang[2],
-						INScal.vel[0], INScal.vel[1], INScal.vel[2],
-						INScal.pos[0], INScal.pos[1], INScal.pos[2],
-						phins.ang[0], phins.ang[1], phins.ang[2],
-						phins.vel[0], phins.vel[1], phins.vel[2],
-						phins.pos[0], phins.pos[0], phins.pos[2],
-						gps.pos[0], gps.pos[1], gps.pos[2],
-						0.0, 0.0, 0.0,
-						fosn.ang[0], fosn.ang[1], fosn.ang[2],
-						fosn.vel[0], fosn.vel[1], fosn.vel[2],
-						fosn.pos[0], fosn.pos[1], fosn.pos[2],
-						inforS.att_angle_S[0], inforS.att_angle_S[1], inforS.att_angle_S[2],
-						inforS.vel_S[0], inforS.vel_S[1], inforS.vel_S[2],
-						inforS.lati_S, inforS.longi_S, inforS.high_S, 
-						inforS.att_angle[0], inforS.att_angle[1], inforS.att_angle[2],
-						inforS.vel_n[0], inforS.vel_n[1], inforS.vel_n[2],
-						inforS.lati, inforS.longi, inforS.high);
-				}
-				else
-				{
-					fprintf_s(fid_Cal, "%d,%d,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%lf,%lf,%lf\n",
-						fosn.recnum, gps.flag, fosn.time, gps.time, phins.utc,
-						IMUout.gyro_b[0], IMUout.gyro_b[1], IMUout.gyro_b[2],
-						IMUout.acce_b[0], IMUout.acce_b[1], IMUout.acce_b[2],
-						INScal.ang[0], INScal.ang[1], INScal.ang[2],
-						INScal.vel[0], INScal.vel[1], INScal.vel[2],
-						INScal.pos[0], INScal.pos[1], INScal.pos[2],
-						phins.ang[0], phins.ang[1], phins.ang[2],
-						phins.vel[0], phins.vel[1], phins.vel[2],
-						phins.pos[0], phins.pos[1], phins.pos[2],
-						gps.pos[0], gps.pos[1], gps.pos[2],
-						gps.vel[0], gps.vel[1], gps.vel[2],
-						fosn.ang[0], fosn.ang[1], fosn.ang[2],
-						fosn.vel[0], fosn.vel[1], fosn.vel[2],
-						fosn.pos[0], fosn.pos[1], fosn.pos[2],						 
-						0.0, 0.0, 0.0);
-				}
+				fprintf_s(fid_Cal, "%d,%d,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf\n",
+					fosn.recnum, ZT.cnt, fosn.time, gps.time, phins.utc,
+					IMUout.gyro_b[0], IMUout.gyro_b[1], IMUout.gyro_b[2],
+					IMUout.acce_b[0], IMUout.acce_b[1], IMUout.acce_b[2],
+					INScal.ang[0], INScal.ang[1], INScal.ang[2],
+					INScal.vel[0], INScal.vel[1], INScal.vel[2],
+					INScal.pos[0], INScal.pos[1], INScal.pos[2],
+					phins.ang[0], phins.ang[1], phins.ang[2],
+					phins.vel[0], phins.vel[1], phins.vel[2],
+					phins.pos[0], phins.pos[0], phins.pos[2],
+					gps.pos[0], gps.pos[1], gps.pos[2],
+					0.0, 0.0, 0.0,
+					fosn.ang[0], fosn.ang[1], fosn.ang[2],
+					fosn.vel[0], fosn.vel[1], fosn.vel[2],
+					fosn.pos[0], fosn.pos[1], fosn.pos[2],
+					inforS.att_angle_S[0], inforS.att_angle_S[1], inforS.att_angle_S[2],
+					inforS.vel_S[0], inforS.vel_S[1], inforS.vel_S[2],
+					inforS.lati_S, inforS.longi_S, inforS.high_S, 
+					inforS.att_angle[0], inforS.att_angle[1], inforS.att_angle[2],
+					inforS.vel_n[0], inforS.vel_n[1], inforS.vel_n[2],
+					inforS.lati, inforS.longi, inforS.high);
 			}
+			else
+			{
+				fprintf_s(fid_Cal, "%d,%d,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%lf,%lf,%lf\n",
+					fosn.recnum, gps.flag, fosn.time, gps.time, phins.utc,
+					IMUout.gyro_b[0], IMUout.gyro_b[1], IMUout.gyro_b[2],
+					IMUout.acce_b[0], IMUout.acce_b[1], IMUout.acce_b[2],
+					INScal.ang[0], INScal.ang[1], INScal.ang[2],
+					INScal.vel[0], INScal.vel[1], INScal.vel[2],
+					INScal.pos[0], INScal.pos[1], INScal.pos[2],
+					phins.ang[0], phins.ang[1], phins.ang[2],
+					phins.vel[0], phins.vel[1], phins.vel[2],
+					phins.pos[0], phins.pos[1], phins.pos[2],
+					gps.pos[0], gps.pos[1], gps.pos[2],
+					gps.vel[0], gps.vel[1], gps.vel[2],
+					fosn.ang[0], fosn.ang[1], fosn.ang[2],
+					fosn.vel[0], fosn.vel[1], fosn.vel[2],
+					fosn.pos[0], fosn.pos[1], fosn.pos[2],						 
+					0.0, 0.0, 0.0);
+			}
+		}
+		if (TestModeNum == 8)
+		{
+			fprintf_s(fid_Cal, "%d,%d,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%d,%d,%d,%d,%d,%d\n",
+				m_cnt_s, gps.flag, fosn.time, gps.time, phins.utc,
+				IMUout.gyro_b[0], IMUout.gyro_b[1], IMUout.gyro_b[2],
+				IMUout.acce_b[0], IMUout.acce_b[1], IMUout.acce_b[2],
+				INScal.ang[0], INScal.ang[1], INScal.ang[2],
+				INScal.vel[0], INScal.vel[1], INScal.vel[2],
+				INScal.pos[0], INScal.pos[1], INScal.pos[2],
+				phins.ang[0], phins.ang[1], phins.ang[2],
+				phins.vel[0], phins.vel[1], phins.vel[2],
+				phins.pos[0], phins.pos[1], phins.pos[2],
+				gps.pos[0], gps.pos[1], gps.pos[2],
+				gps.vel[0], gps.vel[1], gps.vel[2],
+				fosn.ang[0], fosn.ang[1], fosn.ang[2],
+				fosn.vel[0], fosn.vel[1], fosn.vel[2],
+				fosn.pos[0], fosn.pos[1], fosn.pos[2],
+				send_enter_num, Kal_enter_num, Kal_exit_num, send_exit_num, pc104state, gps.trackednum);
+		}
+
 
 #pragma endregion Datacz
 		if (TestModeNum == 2)//3号，3陀螺，3加表，3转台姿态，3FOSN姿态
@@ -1657,6 +1932,15 @@ void CWindowsMainControlV1Dlg::SaveData()
 				phins.ang[0], phins.ang[1], phins.ang[2],
 				phins.vel[0], phins.vel[1], phins.vel[2],
 				phins.pos[2], phins.pos[0], phins.pos[1]);
+		if (TestModeNum == 4)//3号，3陀螺，3加表，3转台姿态，3FOSN姿态
+			fprintf_s(fid_Cal, "%d,%d,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf\n",
+				m_PRecNum, ZT.Frame, fosn.time,
+				IMUout.gyro_b[0], IMUout.gyro_b[1], IMUout.gyro_b[2],
+				IMUout.acce_b[0], IMUout.acce_b[1], IMUout.acce_b[2],
+				ZT.ang[0], ZT.ang[1], ZT.ang[2],
+				fosn.ang[0], fosn.ang[1], fosn.ang[2],
+				fosn.vel[0], fosn.vel[1], fosn.vel[2],
+				fosn.pos[0], fosn.pos[1], fosn.pos[2]);
 		if (TestModeNum == 6)
 		{
 			if (NaviModeNum == NAVI_PHINS_VEL2)
@@ -1758,7 +2042,7 @@ void CWindowsMainControlV1Dlg::DataTrans()
 		INScal.err_pos[2] = sqrt(INScal.err_pos[0]*INScal.err_pos[0] + INScal.err_pos[1]*INScal.err_pos[1]);
 		memcpy(INScal.err_vel, infor.vel_n, sizeof(INScal.err_vel));
 	}
-	if (1 == TestModeNum)
+	if (1 == TestModeNum|| 8 == TestModeNum)
 	{
 		INScal.err_ang[0] = temp_fixanlge[0] * R2D - phins.ang[0];
 		INScal.err_ang[1] = temp_fixanlge[1] * R2D - phins.ang[1];
@@ -2074,8 +2358,10 @@ void CWindowsMainControlV1Dlg::NaviThread(void)
 ////板卡数据接收线程
 UINT CWindowsMainControlV1Dlg::CardRec(LPVOID pParam)
 {
-	HWND hwnd = ((THREADPARAM*)pParam)->hwnd;
+	SOCKET sock = ((SOCKETPARAM*)pParam)->sock;
+	HWND hwnd = ((SOCKETPARAM*)pParam)->hwnd;
 	delete pParam;
+	
 
 	static int count200 = 1;//200个数据的计数器(sysc.Fs决定是200个还是多少个，通常200)
 	static long int rec_count = 0;
@@ -2088,11 +2374,26 @@ UINT CWindowsMainControlV1Dlg::CardRec(LPVOID pParam)
 				Sio_Rx_ResetFIFO(hCard, 0);//复位板卡
 				Sio_Rx_ResetFIFO(hCard, 1);
 				Sio_Rx_ResetFIFO(hCard, 2);
+				Sio_Rx_ResetFIFO(hCard, 3);
 				is_cardReset = 0;
 			}
-			if (FOSNChannel() == 0)
-				continue;
+			switch (FOSN_mode) 
+			{
+			case 0x00:
+				if (FOSNChannel() == 0)
+					continue;
+				break;
+			case 0x01:
+				if (FOSNnChannel() == 0)
+					continue;
+				break;
+			default: break;
+			}
+		
+			
 			if (TestModeNum != 1)ZTChannel();
+			if (is_start_phins)			
+				PHINSTrec(sock);
 			if (Rec200times(count200)) 
 				gps.flag = GPSChannel();
 
@@ -2169,9 +2470,9 @@ UINT CWindowsMainControlV1Dlg::SimulateThread(LPVOID pParam)
 				infor.pos[0] = phins.pos[0] * D2R;
 				infor.pos[1] = phins.pos[1] * D2R;
 				infor.pos[2] = phins.pos[2];
-				initial_latitude = infor.pos[0] * R2D;
-				initial_longitude = infor.pos[1] * R2D;
-				initial_height = infor.pos[2];
+				initial_pos[0] = infor.pos[0] * R2D;
+				initial_pos[1] = infor.pos[1] * R2D;
+				initial_pos[2] = infor.pos[2];
 				infor.vel_n[0] = phins.vel[0];       
 				infor.vel_n[1] = phins.vel[1];
 				infor.vel_n[2] = phins.vel[2];
@@ -2215,39 +2516,47 @@ UINT CWindowsMainControlV1Dlg::SimulateThread(LPVOID pParam)
 	}
 	return 0;
 }
-////phins数据接收的网络线程
+////phins数据接收的网络线程//pc104连接上位机时使用
 UINT CWindowsMainControlV1Dlg::PHINSThread(LPVOID pParam)
 {
 	int len = sizeof(SOCKADDR);
 	SOCKADDR_IN addrFrom;
+	//static double utc1 = 0, utc2 = 0, utc3 = 0;
 	SOCKET sock = ((SOCKETPARAM*)pParam)->sock;
 	HWND hwnd = ((SOCKETPARAM*)pParam)->hwnd;
 	delete pParam;
-	static bool firstps = true;
-
-	while (is_start_phins)
+	while (TestModeNum==8)
 	{
-		int retval = recvfrom(sock, m_Recv_PHINS_Buff, 256, 0, (SOCKADDR*)&addrFrom, &len);
+		int retval = recvfrom(sock, m_Recv_PHINS_Buff, 42, 0, (SOCKADDR*)&addrFrom, &len);
+
 		if (retval == 42 && m_Recv_PHINS_Buff[0] == 0x71)
 			phins.Conv(m_Recv_PHINS_Buff);
-		//获得phins数据且解算初始化OK之后，通过phins赋一次姿态和位置初值
-		if (firstps == true)
-		{
-			if (isStartCalOk)
-			{
-				infor.pos[0] = phins.pos[0] * D2R;
-				infor.pos[1] = phins.pos[1] * D2R;
-				infor.pos[2] = initial_height;
-				avecmul(3, infor.att_angle, phins.ang, D2R);
-				ang2cnb(infor.cnb_mat, infor.att_angle);
-				cnb2q(infor.cnb_mat, infor.quart);
-				optq(infor.quart);
-				firstps = false;
-			}
-		}	
+		if (saveStart)
+		{			
+			fprintf_s(fid_PHINS, "%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf,%.16lf\n",
+				phins.utc,
+				phins.ang[0], phins.ang[1], phins.ang[2],
+				phins.vel[0], phins.vel[1], phins.vel[2],
+				phins.pos[0], phins.pos[1], phins.pos[2]);
+			fflush(fid_PHINS);
+		}
 	}
 
 	return 0;
+}
+//PC机调试时使用
+void CWindowsMainControlV1Dlg::PHINSTrec(SOCKET sock)
+{
+	int len = sizeof(SOCKADDR);
+	SOCKADDR_IN addrFrom;	
+	
+	{
+		int retval = recvfrom(sock, m_Recv_PHINS_Buff, 42, 0, (SOCKADDR*)&addrFrom, &len);
+
+		if (retval == 42 && m_Recv_PHINS_Buff[0] == 0x71)
+			phins.Conv(m_Recv_PHINS_Buff);
+
+	}	
 }
 ////PC104数据接收线程
 UINT CWindowsMainControlV1Dlg::PC104RecThread(LPVOID pParam)
@@ -2260,11 +2569,12 @@ UINT CWindowsMainControlV1Dlg::PC104RecThread(LPVOID pParam)
 	SOCKADDR_IN addrFrom;
 	int i;	
 	DB9CH db9ch;
+	INT20CH int20ch;
 	static long int rec_count = 0;
 	while (!pc104RecQuit)
 	{
 		int retval = recvfrom(sock, recvBuf, 512, 0, (SOCKADDR*)&addrFrom, &len);
-		if ( retval == 512)
+		if ( retval == 398)
 		{
 			memcpy(bufFOSN, recvBuf + 4, sizeof(bufFOSN));
 			fosn.Conv(bufFOSN);
@@ -2277,6 +2587,7 @@ UINT CWindowsMainControlV1Dlg::PC104RecThread(LPVOID pParam)
 
 			memcpy(BufGPS, recvBuf + 74, sizeof(BufGPS));
 			gps.flag = gps.Conv(BufGPS);
+			gps.trackednum = gps.SVs;
 			gps.cnt++;
 
 			memcpy(m_Recv_PHINS_Buff, recvBuf + 254, sizeof(m_Recv_PHINS_Buff));
@@ -2285,8 +2596,22 @@ UINT CWindowsMainControlV1Dlg::PC104RecThread(LPVOID pParam)
 			memcpy(db9ch.ch, recvBuf + 296, sizeof(db9ch.ch));
 			infor.att_angle[1] = db9ch.db[0];	infor.att_angle[2] = db9ch.db[1];	infor.att_angle[0] = db9ch.db[2];
 			infor.vel_n[1] = db9ch.db[3];		infor.vel_n[2] = db9ch.db[4];		infor.vel_n[0] = db9ch.db[5];
-			infor.pos[0] = db9ch.db[6] ;		infor.pos[1] = db9ch.db[7] ;		infor.pos[2] = db9ch.db[8];
+			infor.pos[0] = db9ch.db[6] ;		infor.pos[1] = db9ch.db[7] ;		infor.pos[2] = db9ch.db[8];			
 			DataTrans();
+
+			memcpy(int20ch.Ch, recvBuf + 378, sizeof(int20ch.Ch));
+			send_enter_num = int20ch.Int[0];
+			Kal_enter_num = int20ch.Int[1];
+			Kal_exit_num = int20ch.Int[2];
+			send_exit_num = int20ch.Int[3];
+			m_cnt_s= int20ch.Int[4];
+
+			if (recvBuf[2] == 0x11)
+				pc104state = 0;
+			if (recvBuf[2] == 0x30)
+				pc104state = 1;
+			if (recvBuf[2] == 0x31)
+				pc104state = 2;
 
 			rec_count++;
 			if (1 == is_UpdateData)
@@ -2307,11 +2632,11 @@ UINT CWindowsMainControlV1Dlg::PC104RecThread(LPVOID pParam)
 }
 #pragma endregion ProFunc
 
-//定时器回调函数
-void CALLBACK TimeDalay(UINT uID, UINT uMsg, DWORD dwUsers, DWORD dw1, DWORD dw2)
-{
-	RS_para.canCal = 1;
-}
+
+
+
+
+
 
 
 

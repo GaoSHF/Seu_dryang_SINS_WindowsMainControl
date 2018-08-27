@@ -6,6 +6,7 @@
 
 ///通道0为转台接收，1为GPS接收，2为IMU接收
 
+
 //板卡通道数目
 #define CH_TMAX	4
 #define CH_RMAX	4
@@ -24,7 +25,7 @@ char AppPath[260];
 
 
 void Init_CardVar();
-bool Init_Card(HWND tempHwnd, char navigationmodel, BYTE channel);
+bool Init_Card(HWND tempHwnd, char mode, BYTE channel,char var);//mode,0x0?,为FOSN模式选择，0为老FOSN，1为新FOSN;channel为初始化的通道；var为备用变量
 
 void Init_CardVar()
 {
@@ -35,7 +36,7 @@ void Init_CardVar()
 	TimeOutEn[0]=0;TimeOutEn[1]=0;TimeOutEn[2]=0;TimeOutEn[3]=0;
 
 }
-bool Init_Card(HWND tempHwnd,char navigationmodel=2, BYTE channel=0x0f)
+bool Init_Card(HWND tempHwnd,char mode =0x00, BYTE channel=0x0f, char var=0x00)
 {
 	hCard = NULL; // handle to the card
 	btCardID = 0; // card's ID
@@ -46,48 +47,74 @@ bool Init_Card(HWND tempHwnd,char navigationmodel=2, BYTE channel=0x0f)
 		 if(0==((channel>>i)&0x01))
 			 continue;
 		 // data format of channel 1~4
-		 stdf[i].BaudRate = 614400;//1843200; // bits rate       
+		     
 		 stdf[i].DataLength = 8; // data bits
 		 stdf[i].ParityEnable = FALSE; // parity enabled bits
 		 stdf[i].EvenParity = FALSE; // parity selection
 		 stdf[i].StopBits = 1; // 1 stop bits
 		 
 		 // frame format fo channel 1~4
-		 stff[i].HDR = 0x99;
-		 stff[i].EDR = 0x66;
+		 
 		 TailA[i] = 0x00;
 		 TailB[i] = 0x00;
-		 stff[i].LENR = 42;
-		 
 		 // receive mode of channel 1~4
-		 strm[i].IsProtocol = TRUE; //FALSE transparent
-		 strm[i].ProtocolSel = 0;
+		 strm[i].IsProtocol = TRUE; //FALSE transparent		 
 		 strm[i].SumCheckEN = FALSE;
 		 strm[i].HeadIncluded = FALSE;
 		 
-		 // work mode sel
-		 wmode[i] = 1;//0; // default to 232
 		 
 		 wdWordInterval[i] = 0; // word interval default to 0 ms
 		 
 		 TimeOutEn[i] = TRUE;
 		 TimeoutT[i] = 100;
 	 }
-	 // 
-	 stdf[0].BaudRate = 460800;//1843200; // bits rate  //转台串口
-	 strm[0].ProtocolSel = 1;
-	 stff[0].HDR = 0xFF;
-	 stff[0].EDR = 0xFF;
-	 stff[0].LENR = 13;
-	 wmode[0] = 1;//422
+	// 
+	stdf[0].BaudRate = 614400;//default;
+	strm[0].ProtocolSel = 1;
+	stff[0].HDR = 0xFF;
+	stff[0].EDR = 0xFF;
+	stff[0].LENR = 10;
+	wmode[0] = 1;//422
 
-	 stdf[3].BaudRate = 115200;// bits rate// GPS串口，bestposb
-	 stff[3].HDR = 0xAA;
-	 stff[3].EDR = 0x44;
-	 wmode[3] = 0;//232	 
- 	 strm[3].ProtocolSel = 1;
-	 strm[3].IsProtocol = TRUE; // transparent
-	 stff[3].LENR =177;//bestvel+bestpos-head=76+104-3 
+	stdf[1].BaudRate = 460800;//1843200; // bits rate  //转台串口
+	strm[1].ProtocolSel = 1;
+	stff[1].HDR = 0xFF;
+	stff[1].EDR = 0xFF;
+	stff[1].LENR = 13;
+	wmode[1] = 1;//422
+
+
+	stdf[2].BaudRate = 614400;//FOSN
+	strm[2].ProtocolSel = 0;
+	stff[2].HDR = 0x99;
+	stff[2].EDR = 0x66;
+	stff[2].LENR = 10;
+	wmode[2] = 1;
+
+	stdf[3].BaudRate = 115200;// bits rate// GPS串口，bestposb
+	stff[3].HDR = 0xAA;
+	stff[3].EDR = 0x44;
+	wmode[3] = 0;//232	 
+	strm[3].ProtocolSel = 1;
+	// strm[3].IsProtocol = TRUE; 
+	stff[3].LENR = 177;//bestvel+bestpos-head=76+104-3 
+
+	if (mode == 0x01)
+	{
+		//var高位为板卡通道号，低位位FOSN的com口号
+		int cn = (var & 0xf0) >> 4;
+		int com = (var & 0x0f) ;
+		stdf[cn].BaudRate = 614400;//FOSN_new  0,1-614400//2-921600
+		if (com == 2) stdf[cn].BaudRate = 921600;
+		strm[cn].ProtocolSel = 0;
+		stff[cn].HDR = 0x55;
+		stff[cn].EDR = 0xaa;
+		stff[cn].LENR = 154;//0-154,1/2-28
+		if (com == 2|| com == 1) stff[cn].LENR = 28;
+		wmode[cn] = 1;
+	}
+
+
 
 		 
 #ifndef CARD_DEBUG

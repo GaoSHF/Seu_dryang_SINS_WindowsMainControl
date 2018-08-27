@@ -56,7 +56,84 @@ void FOSN::Conv(BYTE fosn_buf[70])
 	pos[1] = fl6ch.FLo[1] * 57.29578;
 	pos[2] = fl6ch.FLo[2];
 }
-bool GPS::Conv(BYTE gps_buf[180])
+void FOSN::Conv2(BYTE fosn_buf[180],int mode)
+{
+	if (mode != 0)
+	{
+		//输出串口1/2
+		time = (*(int *)(fosn_buf + 3)) / 1000.0;
+		s = (int)time;
+		ms = (int)((time - s) * 1000);
+		wb[1] = (*(int *)(fosn_buf + 7)) *0.0005 / 3600;
+		wb[2] = (*(int *)(fosn_buf + 11)) *0.0005 / 3600;
+		wb[0] = (*(int *)(fosn_buf + 15)) *0.0005 / 3600;
+		fb[1] = (*(int *)(fosn_buf + 19)) / 100000.0;
+		fb[2] = (*(int *)(fosn_buf + 23)) / 100000.0;
+		fb[0] = (*(int *)(fosn_buf + 27)) / 100000.0;
+	}
+	else
+	{
+		//监控口0
+		time = (*(int *)(fosn_buf + 72)) / 1000.0;
+		s = (int)time;
+		ms = (int)((time - s) * 1000);
+		wb[1] = (*(int *)(fosn_buf + 51)) *0.0005 / 3600.0;
+		wb[2] = (*(int *)(fosn_buf + 55)) *0.0005 / 3600.0;
+		wb[0] = (*(int *)(fosn_buf + 59)) *0.0005 / 3600.0;
+		fb[1] = (*(int *)(fosn_buf + 21)) / 100000.0;
+		fb[2] = (*(int *)(fosn_buf + 25)) / 100000.0;
+		fb[0] = (*(int *)(fosn_buf + 29)) / 100000.0;
+		ang[1] = (*(int *)(fosn_buf + 127)) / 10000.0;
+		ang[2] = (*(int *)(fosn_buf + 131)) / 10000.0;
+		ang[0] = (*(int *)(fosn_buf + 135)) / 10000.0;
+		vel[1] = (*(short *)(fosn_buf + 139)) / 100.0;
+		vel[2] = (*(short *)(fosn_buf + 141)) / 100.0;
+		vel[0] = (*(short *)(fosn_buf + 143)) / 100.0;
+		pos[0] = (*(int *)(fosn_buf + 145)) / 1000000.0;
+		pos[2] = (*(int *)(fosn_buf + 149)) / 10.0;
+		pos[1] = (*(int *)(fosn_buf + 153)) / 1000000.0;
+		/*	IAtt[1] = (*(int *)(fosn_buf + 76)) / 10000.0;
+		IAtt[2] = (*(int *)(fosn_buf + 80)) / 10000.0;
+		IAtt[0] = (*(int *)(fosn_buf + 84)) / 10000.0;
+		IVel[1] = (*(short *)(fosn_buf + 88)) / 100.0;
+		IVel[2] = (*(short *)(fosn_buf + 90)) / 100.0;
+		IVel[0] = (*(short *)(fosn_buf + 92)) / 100.0;
+		IPos[0] = (*(int *)(fosn_buf + 94)) / 1000000.0;
+		IPos[2] = (*(int *)(fosn_buf + 98)) / 10.0;
+		IPos[1] = (*(int *)(fosn_buf + 102)) / 1000000.0;
+		GPos[1] = (*(int *)(fosn_buf + 106)) / 100000.0;
+		GPos[2] = (*(int *)(fosn_buf + 110)) / 100000.0;
+		GPos[0] = (*(int *)(fosn_buf + 114)) / 100000.0;
+		GVel[1] = (*(short *)(fosn_buf + 118)) / 100.0;
+		GVel[2] = (*(short *)(fosn_buf + 120)) / 100.0;
+		GVel[0] = (*(short *)(fosn_buf + 122)) / 100.0;*/
+		GPSmode = (int)(*(fosn_buf + 124));
+		WorkingMode = *(fosn_buf + 125);
+		IntegratedMode = *(fosn_buf + 126);
+		switch (WorkingMode)
+		{
+		case 0x00: WorkingModeS = "自检"; break;
+		case 0x01: WorkingModeS = "待机"; break;
+		case 0x02: WorkingModeS = "粗对准"; break;
+		case 0x03: WorkingModeS = "精对准"; break;
+		case 0x04: WorkingModeS = "导航"; break;
+		case 0x05: WorkingModeS = "没用"; break;
+		default:break;
+		}
+
+		switch (IntegratedMode)
+		{
+		case 0x00: IntegratedModeS = "没用"; break;
+		case 0x01: IntegratedModeS = "自动零速修正"; break;
+		case 0x02: IntegratedModeS = "惯性/卫星"; break;
+		case 0x03: IntegratedModeS = "惯性/里程计"; break;
+		case 0x04: IntegratedModeS = "惯性/电磁计程仪"; break;
+		case 0x05: IntegratedModeS = "惯性/DVL"; break;
+		default:break;
+		}
+	}
+}
+int GPS::Conv(BYTE gps_buf[180])
 {
 	int i;
 	INT4CH int4ch;
@@ -75,7 +152,7 @@ bool GPS::Conv(BYTE gps_buf[180])
 			gps.pos[0] = gps_pv.db[0];//*D2R;
 			gps.pos[1] = gps_pv.db[1];//*D2R;
 			gps.pos[2] = gps_pv.db[2];
-
+			gps.SVs = gps_buf[i + 28 + 64];
 			for (i = 0; i < 24; i++)
 				gps_pv.ch[i] = gps_buf[i + 104 + 28 + 16];
 			gps.hv = gps_pv.db[0];
@@ -83,13 +160,13 @@ bool GPS::Conv(BYTE gps_buf[180])
 			gps.vv = gps_pv.db[2];
 			
 
-			gps.vel[0] = -gps.hv*sin(gps.att*D2R);
+			gps.vel[0] = gps.hv*sin(gps.att*D2R);
 			gps.vel[1] = gps.hv*cos(gps.att*D2R);
 			gps.vel[2] = gps.vv;
 			if (gps_buf[28] == 0)//solution computed
-				return true;
+				return 1;
 			else
-				return false;
+				return 0;
 			break;
 #pragma endregion POS_VEL
 		case 0x63:
@@ -110,22 +187,22 @@ bool GPS::Conv(BYTE gps_buf[180])
 			gps.pos[1] = gps_pv.db[1];
 			gps.pos[2] = gps_pv.db[2];
 		//	if (is_startCal) gps.cnt++;
-
-			gps.vel[0] = -gps.hv*sin(gps.att*D2R);
+			gps.SVs = gps_buf[i + 76 + 28 + 64];
+			gps.vel[0] = gps.hv*sin(gps.att*D2R);
 			gps.vel[1] = gps.hv*cos(gps.att*D2R);
 			gps.vel[2] = gps.vv;
 			if (gps_buf[28] == 0)//solution computed
-				return true;
+				return 1;
 			else
-				return false;
+				return 0;
 			break;
 #pragma endregion VEL_POS
 		default:break;
 		}
 	else 
-		return false;
+		return 0;
 }
-void PHINS::Conv(char phins_buf[256])
+void PHINS::Conv(char phins_buf[42])
 {
 	INT4CH data;
 	VA2CH Vel2CH, Ang2CH;
@@ -181,4 +258,16 @@ void PHINS::Conv(char phins_buf[256])
 	Ang2CH.Ch[1] = phins_buf[30];
 	Ang2CH.Ch[0] = phins_buf[31];
 	phins.ang[2] = -Ang2CH.Int * 180.0 / 32768.0;	//航向
+}
+double PHINS::getutc(char phins_buf[42])
+{
+	INT4CH data;	
+	double utc;
+	double binary_value_31_bite = 180.0 / powl(2, 31);	
+	data.Ch[3] = phins_buf[1];
+	data.Ch[2] = phins_buf[2];
+	data.Ch[1] = phins_buf[3];
+	data.Ch[0] = phins_buf[4];
+	utc=data.Int + ((UINT)phins_buf[5])*0.01;		//UTC time
+	return utc;
 }

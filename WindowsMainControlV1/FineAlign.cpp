@@ -501,6 +501,7 @@ void fine_yucia(SKALMAN_15_3& temp_kal, double observer[3],char mode)
 	{
 		F_matrix_15(infor,F_15);                       //20171115   通过当前pureins结构体参数计算15维F阵给F_15
 		Kal_forecast_15(temp_kal,sysc.Ts, F_15);                   //20171115   15维一步预测通用算法 适用于所有 SKALMAN_15_3结构体
+		
 		if (1 == sysc.data_cnt%(sysc.Fs/ sysc.Kal_fr))
 		{		
 			if(mode==YA_POS)
@@ -535,13 +536,42 @@ void navi_Kal_15_3(SKALMAN_15_3& temp_kal, double observer[3], char mode)
 	int i = 0;
 	double F_15[15][15] = { 0 };
 	double tempq[4] = { 0 }, tempphi[3] = { 0 };
+	int dt_num = 200;
+	static double last_cnt_s = 0;
+	double dt=1;
 	F_matrix_15(infor, F_15);                       //20171115   通过当前pureins结构体参数计算15维F阵给F_15
 	Kal_forecast_15(temp_kal, sysc.Ts, F_15);                   //20171115   15维一步预测通用算法 适用于所有 SKALMAN_15_3结构体
+
 	if (0 == sysc.data_cnt % (sysc.Fs / sysc.Kal_fr))
-	{
+	{	
+		if (gps.flag == 0) return;			
+		
+		dt = sysc.cnt_s - last_cnt_s;
+		last_cnt_s = sysc.cnt_s;
+		if (dt > 600)
+		{
+			temp_kal.P_matrix[0][0] = pow(3.0, 2);
+			temp_kal.P_matrix[1][1] = temp_kal.P_matrix[0][0];
+			temp_kal.P_matrix[2][2] = temp_kal.P_matrix[0][0];
+
+			temp_kal.P_matrix[3][3] = pow(0.1 * D2R, 2);
+			temp_kal.P_matrix[4][4] = temp_kal.P_matrix[3][3];
+			temp_kal.P_matrix[5][5] = pow(0.2 * D2R, 2);
+
+			temp_kal.P_matrix[6][6] = pow(1000.0 / RE, 2);
+			temp_kal.P_matrix[7][7] = temp_kal.P_matrix[6][6];
+			temp_kal.P_matrix[8][8] = pow(10000.0, 2);
+			return;
+		}
+		else if (dt > 60)
+		{
+			temp_kal.P_matrix[6][6] = pow(dt / RE, 2);
+			temp_kal.P_matrix[7][7] = temp_kal.P_matrix[6][6];
+			temp_kal.P_matrix[8][8] = pow(dt*5, 2);
+		}
 		avecmul(3,temp_kal.Mea_vector, observer, 1.0);
 		Kal_update_15_3(temp_kal, sysc.Kal_fr);
-		if (sysc.cnt_s >= sysc.algn_time + 20)//20s之后开始校正
+		if (sysc.cnt_s >= sysc.algn_time + 10)//20s之后开始校正
 		{
 			vecsub(3, infor.vel_n, infor.vel_n, temp_kal.X_vector);
 			vecsub(3, infor.pos, infor.pos, temp_kal.X_vector + 6);

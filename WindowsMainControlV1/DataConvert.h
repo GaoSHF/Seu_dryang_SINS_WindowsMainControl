@@ -6,7 +6,11 @@ union INT4CH
 	unsigned char Ch[4];
     int Int;
 };
-
+union INT20CH
+{
+	unsigned char Ch[20];
+	int Int[5];
+};
 union INT12CH
 {
 	unsigned char Ch[12];
@@ -72,24 +76,28 @@ public:
 	int cnt;
 	int flag;
 	double vv, hv, att;//Vertical speed,Horizontal speed,Actual direction with respect to True North
-	bool Conv(BYTE gps_buf[180]);
+	unsigned char SVs;
+	int trackednum;
+	int Conv(BYTE gps_buf[180]);
 	GPS()
 	{
 		memset(vel, 0, sizeof(vel));
 		memset(pos, 0, sizeof(pos));
-
+		SVs = 0;
 		time = 0.0;
 		cnt = 0;
 		flag = 0;
+		trackednum = 0;
 	}
 	void reset()
 	{
 		memset(vel, 0, sizeof(vel));
 		memset(pos, 0, sizeof(pos));
-
+		SVs = 0;
 		time = 0.0;
 		cnt = 0;
 		flag = 0;
+		trackednum = 0;
 	}
 };
 //FOSN相关
@@ -104,27 +112,62 @@ public:
 	double time;
 	int recnum;
 	int s, ms;
+
+	//新FOSN相关变量
+	float input_p[3];//初始位置set
+	float input_v[3];//初始速度set
+	char  WorkingMode, IntegratedMode;
+	int GPSmode;
+	CString WorkingModeS, IntegratedModeS;
+	float IPos[3], IVel[3], IAtt[3];//组合的位置、速度、姿态
+	float GPos[3], GVel[3];//GPS的位置、速度
+
 	FOSN()
 	{
 		memset(vel, 0, sizeof(vel));
 		memset(pos, 0, sizeof(pos));
 		memset(ang, 0, sizeof(ang));
+		memset(ang, 0, sizeof(input_p));
+		memset(ang, 0, sizeof(input_v));
+		memset(ang, 0, sizeof(IPos));
+		memset(ang, 0, sizeof(IVel));
+		memset(ang, 0, sizeof(IAtt));
+		memset(ang, 0, sizeof(GPos));
+		memset(ang, 0, sizeof(GVel));
 		time = 0;
 		recnum = 0;
 		ms = 0;
 		s = 0;
+		GPSmode = 0;
+		WorkingMode = 0x05;
+		WorkingModeS = "没用";
+		IntegratedMode = 0;
+		IntegratedModeS = "没用";
 	}
 	void reset()
 	{
 		memset(vel, 0, sizeof(vel));
 		memset(pos, 0, sizeof(pos));
 		memset(ang, 0, sizeof(ang));
+		memset(ang, 0, sizeof(input_p));
+		memset(ang, 0, sizeof(input_v));
+		memset(ang, 0, sizeof(IPos));
+		memset(ang, 0, sizeof(IVel));
+		memset(ang, 0, sizeof(IAtt));
+		memset(ang, 0, sizeof(GPos));
+		memset(ang, 0, sizeof(GVel));
 		time = 0;
 		recnum = 0;
 		ms = 0;
 		s = 0;
+		GPSmode = 0;
+		WorkingMode = 0x05;
+		WorkingModeS = "没用";
+		IntegratedMode = 0;
+		IntegratedModeS = "没用";
 	}
 	void Conv(BYTE fosn_buf[70]);
+	void Conv2(BYTE fosn_buf[180],int mode);
 };
 class PHINS
 {
@@ -135,7 +178,8 @@ public:
 	double vel_b[3];
 	int cnt;
 	double utc;
-	void Conv(char phins_buf[256]);
+	void Conv(char phins_buf[42]);
+	double getutc(char phins_buf[42]);
 	PHINS()
 	{
 		memset(vel, 0, sizeof(vel));

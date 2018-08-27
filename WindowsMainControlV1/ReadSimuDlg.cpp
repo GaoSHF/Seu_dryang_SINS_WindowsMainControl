@@ -46,7 +46,7 @@ void ReadSimuDlg::init_RScombo()
 {
 	int judge_tf;
 	int i;
-	CString str[] = { _T("车载44位标准格式"),_T("纯录数格式1"),_T("转台模式录数"),_T("仿真数据格式1"),_T("仿真数据格式2"),_T("鱼叉姐数据"),_T("matlab仿真格式1"),_T("haishi录数格式") };
+	CString str[] = { _T("车载47位标准格式"),_T("纯录数格式1"),_T("转台模式录数"),_T("仿真数据格式1"),_T("仿真数据格式2"),_T("鱼叉姐数据"),_T("PC104车载"),_T("haishi录数格式") };
 	for (i = 0; i<8; i++)
 	{
 		judge_tf = RS_FileFormat.InsertString(i, str[i]);

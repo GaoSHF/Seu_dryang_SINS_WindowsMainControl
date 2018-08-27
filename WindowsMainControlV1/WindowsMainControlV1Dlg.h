@@ -5,6 +5,9 @@
 #include "afxwin.h"
 
 #define MAINMODE 1      //1 normal，2 haishi
+
+
+
 // CWindowsMainControlV1Dlg 对话框
 class CWindowsMainControlV1Dlg : public CDialogEx
 {
@@ -58,24 +61,29 @@ public:
 	int edit_data_f;//数据输入的频率；
 	SOCKET m_socketPHINSDataRec;
 	SOCKET m_socketPC104DataRec;
-	
+
 	//Combo控制变量
 	CComboBox m_CoarseAignMode;
 	CComboBox m_FineAignMode;
 	CComboBox m_NaviMode;
 	CComboBox m_HeightMode;
 	CComboBox m_TestMode;
-
+	CComboBox m_BAlignMode;
+	CComboBox m_BAlignTime;	
+	CComboBox m_BCardChannel;
+	CComboBox m_BCom;
 
 	static UINT CardRec(LPVOID pParam);//板卡数据接收线程函数
 	static void CoarseThread();
 	static void FineThread();//
 	static void NaviThread();//
+	static void PHINSTrec(SOCKET sock);
 	static UINT PHINSThread(LPVOID pParam);
 	static UINT SimulateThread(LPVOID pParam);//仿真数据线程
 	static UINT PC104RecThread(LPVOID pParam);//PC104数据接收线程
 	static bool Rec200times(int &count200);//每接收数据200个返回1
 	static int FOSNChannel();
+	static int FOSNnChannel();
 	static void ZTChannel();	
 	static int GPSChannel();	
 	static void IMUdataCount();//从FOSN获得IMU数据
@@ -92,6 +100,9 @@ public:
 
 	
 	afx_msg void OnCbnSelchangeComboFinealignmode();
+	afx_msg void OnBnClickedBtnBInputctrl();
+	afx_msg void OnBnClickedBtnFosnswitch();
+
 };
 
 
