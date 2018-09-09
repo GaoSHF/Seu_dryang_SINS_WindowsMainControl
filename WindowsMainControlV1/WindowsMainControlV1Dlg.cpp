@@ -943,13 +943,14 @@ void CWindowsMainControlV1Dlg::OnBnClickedBtnBInputctrl()
 	for (i = 0; i<32; i++)
 		CRC += sendbuf[i + 3];
 	sendbuf[35] = (CRC & 0xFF);
-	while (1)
+	//while (1)
 	{
-		if (0x01 == Sio_Tx_FIFOSTR(hCard, 0))
+		if (0x01 == Sio_Tx_FIFOSTR(hCard, newFOSN_CardChannel))
 		{
-			Sio_TxWrite(hCard, 0, sendbuf, 36, &rt);
-		}
-		break;
+			Sio_TxWrite(hCard, newFOSN_CardChannel, sendbuf, 36, &rt);
+			
+		}	
+	//	break;
 	}
 }
 void CWindowsMainControlV1Dlg::OnBnClickedBtnFosnswitch()
@@ -2416,6 +2417,7 @@ UINT CWindowsMainControlV1Dlg::CardRec(LPVOID pParam)
 			}
 			if (is_timeSave&&is_startCal)
 			{
+
 				if (m_cnt_s - temp_cnt_s == save_time)
 					::PostMessage(hwnd, WM_TIMESAVE, NULL, NULL);
 			}

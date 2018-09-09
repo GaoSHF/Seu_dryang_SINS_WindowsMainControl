@@ -88,7 +88,7 @@ bool Init_Card(HWND tempHwnd,char mode =0x00, BYTE channel=0x0f, char var=0x00)
 	strm[2].ProtocolSel = 0;
 	stff[2].HDR = 0x99;
 	stff[2].EDR = 0x66;
-	stff[2].LENR = 10;
+	stff[2].LENR = 67;
 	wmode[2] = 1;
 
 	stdf[3].BaudRate = 115200;// bits rate// GPS´®¿Ú£¬bestposb

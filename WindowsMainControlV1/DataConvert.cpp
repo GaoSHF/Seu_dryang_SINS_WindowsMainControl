@@ -92,7 +92,7 @@ void FOSN::Conv2(BYTE fosn_buf[180],int mode)
 		pos[0] = (*(int *)(fosn_buf + 145)) / 1000000.0;
 		pos[2] = (*(int *)(fosn_buf + 149)) / 10.0;
 		pos[1] = (*(int *)(fosn_buf + 153)) / 1000000.0;
-		/*	IAtt[1] = (*(int *)(fosn_buf + 76)) / 10000.0;
+		IAtt[1] = (*(int *)(fosn_buf + 76)) / 10000.0;
 		IAtt[2] = (*(int *)(fosn_buf + 80)) / 10000.0;
 		IAtt[0] = (*(int *)(fosn_buf + 84)) / 10000.0;
 		IVel[1] = (*(short *)(fosn_buf + 88)) / 100.0;
@@ -101,13 +101,13 @@ void FOSN::Conv2(BYTE fosn_buf[180],int mode)
 		IPos[0] = (*(int *)(fosn_buf + 94)) / 1000000.0;
 		IPos[2] = (*(int *)(fosn_buf + 98)) / 10.0;
 		IPos[1] = (*(int *)(fosn_buf + 102)) / 1000000.0;
-		GPos[1] = (*(int *)(fosn_buf + 106)) / 100000.0;
+	/*	GPos[1] = (*(int *)(fosn_buf + 106)) / 100000.0;
 		GPos[2] = (*(int *)(fosn_buf + 110)) / 100000.0;
 		GPos[0] = (*(int *)(fosn_buf + 114)) / 100000.0;
 		GVel[1] = (*(short *)(fosn_buf + 118)) / 100.0;
 		GVel[2] = (*(short *)(fosn_buf + 120)) / 100.0;
-		GVel[0] = (*(short *)(fosn_buf + 122)) / 100.0;*/
-		GPSmode = (int)(*(fosn_buf + 124));
+		GVel[0] = (*(short *)(fosn_buf + 122)) / 100.0;
+		GPSmode = (int)(*(fosn_buf + 124));*/
 		WorkingMode = *(fosn_buf + 125);
 		IntegratedMode = *(fosn_buf + 126);
 		switch (WorkingMode)
